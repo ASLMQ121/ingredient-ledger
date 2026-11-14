@@ -1340,15 +1340,26 @@ async function liveFood(id, q, barcode, sig, seq, base){
       setSec(id, "not found", '<div class="msg">That barcode isn\'t in Open Food Facts or its sister databases yet. They are crowd-sourced — try the product name, take a <button class="btn sm ghost" data-ocr>photo of the ingredient list</button>, or add it at <a target="_blank" rel="noopener" href="https://world.openfoodfacts.org/cgi/product.pl?type=add&code=' + esc(barcode) + '">openfoodfacts.org ↗</a>.</div>', seq); return;
     }
     let ps = [];
-    if(id === "food"){
+    if(id === "food" && PROXY){
+      /* search-a-licious refuses direct browser calls, so it is only used through the Cloudflare proxy */
       try{
-        const sj = await getJSON("https://search.openfoodfacts.org/search?page_size=12&langs=en&q=" + encodeURIComponent(q) + "&fields=" + OFF_FIELDS_SEARCH, sig, {timeout:10000});
+        const sj = await getJSONdirect(PROXY + encodeURIComponent("https://search.openfoodfacts.org/search?page_size=12&langs=en&q=" + encodeURIComponent(q) + "&fields=" + OFF_FIELDS_SEARCH), sig, {timeout:10000});
         ps = (sj.hits || []).filter(p => p.product_name || p.product_name_en);
       }catch(e){ if(sig.aborted) return; }
     }
     if(!ps.length){
       const url = base + "/cgi/search.pl?search_terms=" + encodeURIComponent(q) + "&search_simple=1&action=process&json=1&page_size=12&sort_by=unique_scans_n&fields=" + OFF_FIELDS_SEARCH;
-      const j = await getJSON(url, sig);
+      let j;
+      try{ j = await getJSON(url, sig); }
+      catch(e){
+        if(sig.aborted) return;
+        /* Open Food Facts allows ~10 searches a minute; its "slow down" answer has no CORS header, so it looks like a network error */
+        await new Promise(r => setTimeout(r, 2500));
+        if(sig.aborted || seq !== state.liveSeq) return;
+        try{ j = await getJSON(url, sig); }
+        catch(e2){ if(sig.aborted || seq !== state.liveSeq) return;
+          setSec(id, "busy", '<div class="msg">Open Food Facts is busy — it allows about 10 product searches a minute. <button class="btn sm ghost" data-retry="1">Try again</button> in a moment. Barcode lookups and the other sources still work.</div>', seq); return; }
+      }
       ps = (j.products || []).filter(p => p.product_name || p.product_name_en);
     }
     if(!ps.length){ setSec(id, "0 products", '<div class="msg">No products found for “' + esc(q) + '”. Try a shorter, more generic word.</div>', seq); return; }
@@ -1620,7 +1631,7 @@ async function liveMealDB(q, sig, seq){
 const FRUITS = "apple apricot avocado banana blackberry blueberry cherry coconut cranberry date dragonfruit durian fig gooseberry grape grapefruit guava jackfruit kiwi kiwifruit lemon lime lychee mango melon orange papaya passionfruit peach pear persimmon pineapple plum pomegranate raspberry strawberry tangerine watermelon".split(" ");
 async function liveFruit(q, sig, seq){
   const f = norm(q).trim().replace(/s$/, "");
-  if(!FRUITS.includes(f)) return;
+  if(!FRUITS.includes(f) || !PROXY) return; /* Fruityvice sends no CORS header: only reachable through the Cloudflare proxy */
   try{
     const j = await getJSON("https://www.fruityvice.com/api/fruit/" + encodeURIComponent(f), sig, {timeout:8000});
     if(!j || !j.name || seq !== state.liveSeq) return;
