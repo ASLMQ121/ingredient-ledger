@@ -14,6 +14,10 @@ A single static page: no accounts, no tracking, no server of its own. It works o
 | **Non-vegetarian** | Egg, fish or meat, or any essence, stock, fat, gelatine, extract or by-product of them, plus insects (carmine, shellac) and animal rennet. |
 | **Needs checking** | Can come from plants or animals depending on the maker. With **Strict** on (the default), these count as *avoid*. |
 
+**Was an animal killed?** Every entry answers this. If no animal is killed (milk, honey, wool wax, horse-serum antivenoms, vaccines made in cultured cell lines such as Flublok, Flucelvax and Shingrix, and mRNA vaccines), it is listed as **suitable for vegetarians**, with a disclaimer where the product still has an animal origin. Eggs are the one exception by this site's rule.
+
+**Alternatives:** 175+ entries list vegetarian or vegan swaps. Examples: agar or pectin for gelatine, beet red for carmine, microbial rennet cheeses, algal omega-3, lichen D3, HPMC capsules, levothyroxine instead of pig thyroid, egg-free flu vaccines, and Priorix instead of gelatine-containing MMR.
+
 **Cheese is strict:** every cheese counts as non-vegetarian unless the label says microbial, vegetable or "suitable for vegetarians" rennet, because traditional rennet comes from slaughtered calves.
 
 ## What it does
