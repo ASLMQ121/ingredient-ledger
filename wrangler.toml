@@ -1,0 +1,4 @@
+# Cloudflare Pages project config (used by `wrangler pages deploy` and the Git integration)
+name = "ingredient-ledger"
+pages_build_output_dir = "."
+compatibility_date = "2025-01-01"
