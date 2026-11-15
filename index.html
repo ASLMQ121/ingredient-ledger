@@ -1693,11 +1693,22 @@ async function rxSuggest(q, sig){
 }
 
 /* ---------- Wikipedia ---------- */
+const WIKI_STOP_WORDS = new Set(["a", "an", "and", "are", "for", "in", "is", "me", "of", "on", "the", "to", "what", "where", "with"]);
+function relevantWikiHits(q, hits){
+  const terms = q.toLowerCase().match(/[a-z0-9]+/g) || [];
+  const significant = terms.filter(term => !WIKI_STOP_WORDS.has(term));
+  if(!significant.length) return [];
+  return hits.filter(hit => {
+    const title = (hit.title || "").replace(/<[^>]*>/g, " ").toLowerCase().match(/[a-z0-9]+/g) || [];
+    const text = title.concat((hit.snippet || "").replace(/<[^>]*>/g, " ").toLowerCase().match(/[a-z0-9]+/g) || []);
+    return significant.some(term => title.includes(term)) && significant.every(term => text.includes(term));
+  });
+}
 async function liveWiki(q, sig, seq){
   try{
     const s = await getJSON("https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=" + encodeURIComponent(q) + "&srlimit=4&format=json&origin=*", sig);
-    const hits = (s.query && s.query.search) || [];
-    if(!hits.length){ setSec("wiki", "0 articles", '<div class="msg">No encyclopedia article found.</div>', seq); return; }
+    const hits = relevantWikiHits(q, (s.query && s.query.search) || []);
+    if(!hits.length){ setSec("wiki", "0 articles", '<div class="msg">No relevant encyclopedia article found.</div>', seq); return; }
     const sum = await getJSON("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(hits[0].title.replace(/ /g, "_")), sig);
     const others = hits.slice(1).map(h => '<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/' + encodeURIComponent(h.title.replace(/ /g, "_")) + '">' + esc(h.title) + '</a>').join(" · ");
     setSec("wiki", "1 article", '<article class="product">' +
@@ -1924,16 +1935,15 @@ function haversine(a, b){
 const fmtDist = m => m < 950 ? Math.round(m / 10) * 10 + " m" : (m / 1000).toFixed(1) + " km";
 const OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"];
 async function overpass(query){
-  let lastErr;
   for(const ep of OVERPASS){
     const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 32000);
     try{
       const r = await fetch(ep, {method:"POST", body:"data=" + encodeURIComponent(query), headers:{"Content-Type":"application/x-www-form-urlencoded"}, signal:ctrl.signal});
       if(!r.ok) throw new Error("HTTP " + r.status);
       const j = await r.json(); clearTimeout(t); return j;
-    }catch(err){ lastErr = err; clearTimeout(t); }
+    }catch{ clearTimeout(t); }
   }
-  throw lastErr || new Error("Overpass unreachable");
+  throw new Error("All restaurant search servers timed out or were unreachable. Please try again in a moment.");
 }
 async function geocode(q){
   try{
@@ -1983,7 +1993,7 @@ async function eatSearch(center, label, alts){
     renderEat();
   }catch(err){
     if(seq !== EAT.seq) return;
-    setEatStatus('<div class="msg err"><b>The restaurant database didn\'t respond.</b> ' + esc(err.message) + ' The free Overpass servers are sometimes busy — <button class="btn sm ghost" id="eatretry">Try again</button></div>');
+    setEatStatus('<div class="msg err"><b>The restaurant database didn\'t respond.</b> ' + esc(err.message) + ' <button class="btn sm ghost" id="eatretry">Try again</button></div>');
   }
 }
 async function eatFromText(){
