@@ -1,0 +1,10 @@
+{
+  "name": "ingredient-ledger",
+  "private": true,
+  "scripts": {
+    "test:visual": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
