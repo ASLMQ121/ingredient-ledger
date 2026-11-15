@@ -78,7 +78,7 @@ inspect the captured images.
 
 **GitHub Pages:** in the repo, go to Settings → Pages → *Deploy from a branch* → `main` / root. The site appears at `https://<user>.github.io/ingredient-ledger/`.
 
-**Cloudflare Pages (recommended):** in the Cloudflare dashboard, go to Workers & Pages → Create → Pages → *Connect to Git* and pick this repo. Set build command to *(none)* and output directory to `/`. Cloudflare also runs `functions/api/proxy.js`, which relays the few allow-listed APIs that browsers can't call directly (for example DailyMed and Fruityvice) and caches them for an hour.
+**Cloudflare Pages (recommended):** in the Cloudflare dashboard, go to Workers & Pages → Create → Pages → *Connect to Git* and pick this repo. Set build command to *(none)* and output directory to `/`. Cloudflare also runs `functions/api/proxy.js`, which relays the few allow-listed APIs that browsers can't call directly (for example DailyMed, Fruityvice, and USDA) and caches them for an hour. A visitor-entered USDA key is included in USDA request URLs; if a direct request fails, the site may retry through `/api/proxy`, whose request URL contains the key.
 
 **Spoonacular for every visitor (optional):** in the Cloudflare Pages project, go to Settings → Variables and Secrets and add a secret named `SPOONACULAR_KEY`. `functions/api/spoon.js` then calls Spoonacular server-side with that key. The key never reaches the browser, only the read-only endpoints the site uses are allowed, and answers are cached for 6 hours to save quota. A visitor's own key, if they enter one under API keys, still takes priority.
 
