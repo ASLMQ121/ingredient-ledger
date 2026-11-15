@@ -84,15 +84,15 @@ button{font-family:inherit}
 .tab[aria-selected="true"]{background:var(--ink);color:var(--on-ink)}
 .me{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dim);white-space:nowrap}
 .me .strictbox{font-family:var(--sans);font-size:12.5px;letter-spacing:0;text-transform:none;color:var(--dim)}
-.me label{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.me label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
 .me select{appearance:none;font-family:var(--sans);font-size:13.5px;font-weight:500;color:var(--ink);background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238b8376' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 10px center;border:1px solid var(--line);border-radius:8px;padding:7px 28px 7px 11px;cursor:pointer;max-width:210px}
 
 /* ---------- hero ---------- */
 .hero{padding:50px 0 18px}
 .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);margin:0 0 16px;display:flex;align-items:center;gap:9px}
 .kicker::before{content:"";width:22px;height:1px;background:var(--clay);opacity:.6}
-h1{font-family:var(--serif);font-weight:400;font-size:clamp(34px,5.4vw,60px);line-height:1.03;letter-spacing:-.018em;margin:0 0 16px;max-width:19ch}
-h1 em{font-style:italic;color:var(--clay)}
+h1{font-family:var(--serif);font-weight:400;font-size:clamp(34px,5.4vw,60px);line-height:1.03;letter-spacing:-.018em;margin:0 0 16px;max-width:32ch}
+h1 em{font-style:italic;color:var(--clay);white-space:nowrap}
 .lede{font-size:17px;line-height:1.62;color:var(--dim);max-width:64ch;margin:0 0 26px;font-weight:300}
 .lede b{font-weight:500;color:var(--ink)}
 
@@ -102,7 +102,7 @@ h1 em{font-style:italic;color:var(--clay)}
 .searchbox:focus-within{border-color:rgba(168,69,29,.55);box-shadow:0 0 0 4px rgba(168,69,29,.09),var(--shadow)}
 .searchbox>svg{flex:none;color:var(--faint)}
 #q{flex:1;min-width:0;border:0;background:transparent;outline:none;font-family:var(--sans);font-size:17.5px;color:var(--ink);height:100%}
-#q::placeholder{color:var(--faint)}
+#q::placeholder{color:var(--dim);opacity:1}
 #q::-webkit-search-cancel-button{display:none}
 #view-search.is-searching .hero{padding-top:22px}
 #view-search.is-searching .kicker,#view-search.is-searching h1,#view-search.is-searching .lede,#view-search.is-searching .legend,#view-search.is-searching .tryrow{display:none}
@@ -110,11 +110,12 @@ h1 em{font-style:italic;color:var(--clay)}
 .iconbtn:hover{background:var(--surface-2);color:var(--ink)}
 .kbd{font-family:var(--mono);font-size:10px;color:var(--faint);border:1px solid var(--line);border-radius:5px;padding:2px 6px;background:var(--paper)}
 .tryrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;align-items:center}
-.tryrow>span{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-right:2px}
+.tryrow>span{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-right:2px}
 .trybtn{appearance:none;border:1px solid var(--line);background:transparent;cursor:pointer;font-size:13px;color:var(--dim);padding:5px 11px;border-radius:99px;transition:all .14s}
 .trybtn:hover{border-color:rgba(30,27,22,.3);color:var(--ink);background:var(--surface-2)}
 .srcrow{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:16px;align-items:center;font-size:12.5px;color:var(--dim)}
-.srcrow .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.srcrow .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.src-note{font-size:12px;color:var(--dim)}
 .check{display:inline-flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
 .check input{accent-color:var(--clay);width:15px;height:15px;margin:0}
 
@@ -209,7 +210,7 @@ dialog.cam::backdrop{background:rgba(0,0,0,.6)}
 .pagehead h2{font-family:var(--serif);font-weight:400;font-size:clamp(30px,4.2vw,46px);letter-spacing:-.015em;margin:0 0 12px;line-height:1.08}
 .pagehead p{color:var(--dim);max-width:68ch;font-size:16px;font-weight:300;margin:0 0 8px}
 .section{margin-top:40px}
-.section-label{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin:0 0 16px}
+.section-label{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin:0 0 16px}
 .section-label::after{content:"";flex:1;height:1px;background:var(--line-soft)}
 
 /* ---------- tiles (home when empty) ---------- */
@@ -387,8 +388,11 @@ select.field-in{appearance:none;background:var(--surface) url("data:image/svg+xm
 
 /* ---------- index filters ---------- */
 .filters{position:sticky;top:62px;z-index:30;background:var(--paper);padding:14px 0 12px;border-bottom:1px solid var(--line-soft)}
-.scroll-chips{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
-.scroll-chips::-webkit-scrollbar{display:none}
+.scroll-chips{display:flex;gap:7px;overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--faint) var(--surface-2);padding-bottom:5px}
+.scroll-chips::-webkit-scrollbar{height:6px}
+.scroll-chips::-webkit-scrollbar-thumb{background:var(--faint);border-radius:99px}
+.scroll-chips::-webkit-scrollbar-track{background:var(--surface-2);border-radius:99px}
+.filter-hint{margin:4px 0 0;font-size:11px;color:var(--dim)}
 .filterrow{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:11px}
 .countline{margin:18px 0 14px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
 .countline .n{color:var(--ink);font-weight:500}
@@ -423,10 +427,10 @@ footer p{margin:0 0 6px;font-size:12.5px;color:var(--faint);line-height:1.6;max-
   .me select{min-width:0}
 }
 @media (max-width:480px){
+  h1 em{white-space:normal}
   .brand b{display:none}
-  .me label[for="profile"]{display:none}
-  .me{margin-left:auto}
-  .me select{font-size:13px;padding:6px 26px 6px 9px;max-width:150px}
+  .me{margin-left:auto;gap:5px}
+  .me select{font-size:13px;padding:6px 26px 6px 9px;max-width:132px}
   .tabs{position:fixed;left:0;right:0;bottom:0;margin:0;background:var(--surface);backdrop-filter:blur(10px);border-top:1px solid var(--line);z-index:60;justify-content:space-around;padding:6px 6px calc(6px + env(safe-area-inset-bottom));gap:0}
   .tab{flex-direction:column;gap:2px;font-size:10.5px;padding:6px 4px;flex:1;border-radius:9px;min-width:0}
   .tab svg{width:20px;height:20px}
@@ -476,7 +480,7 @@ footer p{margin:0 0 6px;font-size:12.5px;color:var(--faint);line-height:1.6;max-
   <div class="wrap">
     <div class="hero">
       <p class="kicker">Vegan · Vegetarian · Lacto-vegetarian · Non-veg</p>
-      <h1>Is it vegetarian? <em>Know in seconds.</em></h1>
+      <h1>Vegan, vegetarian, or non-veg? <em>Know in seconds.</em></h1>
       <p class="lede">Type any ingredient, E-number, food, drink, medicine or vaccine — or paste a barcode. You get an instant verdict and <b>exactly how it is derived</b>, checked against the built-in index and live public databases.</p>
 
       <div class="searchwrap">
@@ -507,6 +511,7 @@ footer p{margin:0 0 6px;font-size:12.5px;color:var(--faint);line-height:1.6;max-
           <label class="check"><input type="checkbox" id="s-food" checked> Packaged foods &amp; drinks</label>
           <label class="check"><input type="checkbox" id="s-med" checked> Medicines &amp; vaccines</label>
           <label class="check"><input type="checkbox" id="s-care"> Personal care</label>
+          <small class="src-note">Off by default to keep food and medicine searches focused; enables Open Beauty Facts results.</small>
           <label class="check"><input type="checkbox" id="s-meal" checked> Recipes &amp; cocktails</label>
           <label class="check"><input type="checkbox" id="s-usda" checked> USDA foods (generic &amp; branded)</label>
           <label class="check"><input type="checkbox" id="s-sp" checked> Spoonacular</label>
@@ -656,11 +661,12 @@ footer p{margin:0 0 6px;font-size:12.5px;color:var(--faint);line-height:1.6;max-
       <p id="indexsub">Browse additives, ingredients, cheeses, dishes, drinks, medicines, vaccines and hidden label terms.</p>
     </div>
     <div class="filters">
-      <div class="scroll-chips" id="catchips"></div>
+      <div class="scroll-chips" id="catchips" role="group" aria-label="Filter by category"></div>
       <div class="filterrow">
-        <div class="scroll-chips" id="kchips"></div>
+        <div class="scroll-chips" id="kchips" role="group" aria-label="Filter by verdict"></div>
         <input id="iq" class="field-in miniinput" type="search" placeholder="Filter this list…" aria-label="Filter the index" autocomplete="off">
       </div>
+      <p class="filter-hint" id="filterhint" aria-hidden="true" hidden>Scroll horizontally to see all filters</p>
     </div>
     <div class="countline"><span class="n" id="shown">0</span> of <span id="total">0</span> entries <span id="activetag"></span></div>
     <div class="list" id="ilist"></div>
@@ -815,6 +821,10 @@ const DATA = [{"n":"E120 Carmine","aka":"cochineal, carminic acid, natural red 4
 /* ====================================================================== helpers */
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
+const searchQuery = $("#q"), fullSearchPlaceholder = searchQuery.placeholder;
+const compactSearch = window.matchMedia("(max-width:480px)");
+function updateSearchPlaceholder(){ searchQuery.placeholder = compactSearch.matches ? "Search…" : fullSearchPlaceholder; }
+compactSearch.addEventListener("change", updateSearchPlaceholder);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const rxEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const store = {
@@ -1790,6 +1800,9 @@ function renderIndex(){
   $("#ilist").innerHTML = rows.slice(0, state.limit).map(e => card(e, ts)).join("") +
     (rows.length > state.limit ? '<div class="morewrap"><button class="btn ghost" id="more">Show ' + Math.min(40, rows.length - state.limit) + ' more of ' + (rows.length - state.limit) + ' remaining</button></div>' : "");
 }
+function updateFilterHint(){
+  $("#filterhint").hidden = !$$(".scroll-chips").some(row => row.scrollWidth > row.clientWidth);
+}
 
 /* ====================================================================== RESTAURANTS */
 const CUISINES = [
@@ -2135,7 +2148,7 @@ function showView(v, opts){
   $$(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.view === v)));
   if(!(opts && opts.noScroll)) window.scrollTo({top:0, behavior:"instant"});
   if(!(opts && opts.noHash)) history.replaceState(null, "", "#" + v);
-  if(v === "index") renderIndex();
+  if(v === "index"){ renderIndex(); updateFilterHint(); }
   if(v === "eat" && EAT.map) setTimeout(() => EAT.map.invalidateSize(), 80);
   if(v === "search" && !(opts && opts.noFocus) && window.matchMedia("(min-width:761px)").matches) setTimeout(() => $("#q").focus(), 50);
 }
@@ -2192,8 +2205,16 @@ $("#urlbtn").addEventListener("click", readPage);
 $("#scanurl").addEventListener("keydown", e => { if(e.key === "Enter") readPage(); });
 
 /* index */
+$$(".scroll-chips").forEach(row => row.addEventListener("focusin", e => {
+  const chip = e.target.closest(".chip");
+  if(!chip) return;
+  const chipRect = chip.getBoundingClientRect(), rowRect = row.getBoundingClientRect();
+  if(chipRect.right > rowRect.right) row.scrollLeft += chipRect.right - rowRect.right;
+  else if(chipRect.left < rowRect.left) row.scrollLeft -= rowRect.left - chipRect.left;
+}));
 $("#catchips").addEventListener("click", e => { const b = e.target.closest(".chip"); if(!b) return; state.cat = b.dataset.cat; state.limit = 40; $$("#catchips .chip").forEach(c => c.setAttribute("aria-pressed", String(c === b))); renderIndex(); });
 $("#kchips").addEventListener("click", e => { const b = e.target.closest(".chip"); if(!b) return; state.kf = b.dataset.kf; state.limit = 40; $$("#kchips .chip").forEach(c => c.setAttribute("aria-pressed", String(c === b))); renderIndex(); });
+window.addEventListener("resize", updateFilterHint);
 $("#iq").addEventListener("input", debounce(e => { iq = e.target.value.trim(); state.limit = 40; renderIndex(); }, 150));
 $("#ilist").addEventListener("click", e => { if(e.target.id === "more"){ state.limit += 40; renderIndex(); } });
 
@@ -2346,6 +2367,7 @@ if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) window.a
 /* ====================================================================== init */
 refreshKeyUI(); checkServerSpoon();
 buildLegend(); buildTiles(); buildIndexChips(); buildCuisines();
+updateSearchPlaceholder(); updateFilterHint();
 $("#total").textContent = DATA.length;
 $("#built").textContent = DATA.length + " entries · built " + new Date().toISOString().slice(0,10);
 showView(location.hash.slice(1) || "search", {noHash:true, noScroll:true, noFocus:true});
