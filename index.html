@@ -86,6 +86,10 @@ button{font-family:inherit}
 .me .strictbox{font-family:var(--sans);font-size:12.5px;letter-spacing:0;text-transform:none;color:var(--dim)}
 .me label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
 .me select{appearance:none;font-family:var(--sans);font-size:13.5px;font-weight:500;color:var(--ink);background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238b8376' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 10px center;border:1px solid var(--line);border-radius:8px;padding:7px 28px 7px 11px;cursor:pointer;max-width:210px}
+.strict-help{position:relative;font-size:12px}
+.strict-help summary{list-style:none;display:grid;place-items:center;width:20px;height:20px;border:1px solid var(--line);border-radius:50%;cursor:pointer;color:var(--dim)}
+.strict-help summary::-webkit-details-marker{display:none}
+.strict-help>span{position:absolute;z-index:20;top:calc(100% + 8px);right:0;width:min(280px,80vw);padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--surface);box-shadow:var(--shadow);color:var(--ink);font-size:12px;line-height:1.5;white-space:normal}
 
 /* ---------- hero ---------- */
 .hero{padding:50px 0 18px}
@@ -245,6 +249,9 @@ dialog.cam::backdrop{background:rgba(0,0,0,.6)}
 .killchip{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:5px;margin-right:8px;font-weight:600}
 .killchip.yes{background:var(--nonveg-soft);color:var(--nonveg)} .killchip.no,.killchip.none{background:var(--vegan-soft);color:var(--vegan)} .killchip.depends{background:var(--check-soft);color:var(--check)}
 .disclaimer{font-size:12.8px;line-height:1.55;color:var(--dim);border:1px dashed var(--line);border-radius:8px;padding:8px 11px;font-style:italic}
+.verdict-note{margin:8px 0 0;color:var(--dim);font-size:12px;line-height:1.5}
+.evidence-note{margin:7px 0 0;color:var(--dim);font-size:12px;line-height:1.5}
+.evidence-note b{color:var(--ink);font-weight:600}
 .field.alt dd{background:var(--vegan-soft);border-radius:8px;padding:8px 11px;color:var(--ink)}
 .field.alt dd a{font-size:12.5px;white-space:nowrap}
 .origin{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:5px;margin-right:8px;background:var(--slate-soft);color:var(--slate)}
@@ -463,12 +470,13 @@ footer p{margin:0 0 6px;font-size:12.5px;color:var(--faint);line-height:1.6;max-
     </nav>
     <div class="me">
       <label for="profile">I eat</label>
-      <select id="profile" aria-label="My diet">
-        <option value="lacto">Vegetarian (no egg)</option>
-        <option value="ovo">Vegetarian + egg</option>
+      <select id="profile" aria-label="My diet" title="Lacto-vegetarian includes dairy, no egg. Lacto-ovo vegetarian includes dairy and egg.">
+        <option value="lacto">Lacto-vegetarian</option>
+        <option value="ovo">Lacto-ovo vegetarian</option>
         <option value="vegan">Vegan</option>
       </select>
-      <label class="check strictbox" title="Strict mode: anything whose source is unclear is treated as 'avoid'"><input type="checkbox" id="strict"> Strict</label>
+      <label class="check strictbox"><input type="checkbox" id="strict"> Strict</label>
+      <details class="strict-help"><summary aria-label="Strict mode help" title="Strict mode help">?</summary><span>Strict changes only uncertain ingredient sources to Avoid. “May contain” and other shared-line warnings stay separate from recipe ingredients; Strict does not assess cross-contact risk.</span></details>
       <button class="themebtn" id="themebtn" type="button" aria-label="Switch light or dark theme" title="Light / dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
     </div>
   </div>
@@ -686,9 +694,9 @@ footer p{margin:0 0 6px;font-size:12.5px;color:var(--faint);line-height:1.6;max-
       <p class="section-label">The five verdicts</p>
       <div class="defs" id="defs"></div>
       <div class="callout"><b>Why milk is lacto-vegetarian but cheese isn't automatically.</b> Milk (and ghee, butter, curd, paneer) is taken from a living animal — nothing is killed — so it counts as <b>lacto-vegetarian</b>. Cheese needs <b>rennet</b>, traditionally the stomach enzyme of slaughtered calves, so <b>every cheese is treated as non-vegetarian</b> — Parmesan, mozzarella, cheddar, feta, processed slices, cheese powder, all of it — <b>unless the label itself says microbial, vegetable or "suitable for vegetarians" rennet</b> (or carries the green-dot mark). The Scan tab applies the same rule: cheese in a list is flagged non-veg unless that wording appears in the text. Honey and beeswax are treated as vegetarian but not vegan.</div>
-      <div class="callout"><b>Strict mode</b> (the "Strict" switch at the top, on by default) also turns every <b>unclear</b> ingredient — "natural flavouring", E471, "emulsifier", unnamed glycerine — into <b>Avoid</b> for you, until the maker confirms the source.</div>
-      <div class="callout"><b>Was an animal killed?</b> Every entry now answers this. Where <b>no animal is killed</b> — milk, honey, wool wax, horse-serum antivenoms, vaccines made in long-established cultured cell lines — it is listed as <b>suitable for vegetarians</b>, with a disclaimer where the product still has an animal origin. Eggs are the one exception by this site's rule: no animal is killed to collect them, but they count as non-vegetarian (change "I eat" to "Vegetarian + egg" if egg is fine for you). Vaccines grown in fertilised chick embryos stay non-vegetarian because the embryos die.</div>
-      <div class="callout"><b>What "non-vegetarian" means here.</b> Anything containing <b>meat, fish or egg</b> — or any essence, extract, stock, fat or derivative of them — plus ingredients made by killing animals or insects (gelatine, carmine, shellac, isinglass, animal rennet, bone char). The egg rule can be relaxed with the "Vegetarian + egg" setting at the top.</div>
+      <div class="callout"><b>Strict mode</b> (the "Strict" switch at the top, on by default) changes only ingredients with an unclear source — "natural flavouring", E471, "emulsifier", unnamed glycerine — from <b>Check</b> to <b>Avoid</b> until the maker confirms the source. “May contain” and other shared-line warnings are not recipe ingredients and are shown separately; Strict does not assess cross-contact risk.</div>
+      <div class="callout"><b>Was an animal killed?</b> Every entry now answers this. Where <b>no animal is killed</b> — milk, honey, wool wax, horse-serum antivenoms, vaccines made in long-established cultured cell lines — it is listed as <b>suitable for vegetarians</b>, with a disclaimer where the product still has an animal origin. Eggs are the one exception by this site's rule: no animal is killed to collect them, but they count as non-vegetarian (change "I eat" to "Lacto-ovo vegetarian" if egg is fine for you). Vaccines grown in fertilised chick embryos stay non-vegetarian because the embryos die.</div>
+      <div class="callout"><b>What "non-vegetarian" means here.</b> Anything containing <b>meat, fish or egg</b> — or any essence, extract, stock, fat or derivative of them — plus ingredients made by killing animals or insects (gelatine, carmine, shellac, isinglass, animal rennet, bone char). The egg rule can be relaxed with the "Lacto-ovo vegetarian" setting at the top.</div>
     </div>
 
     <div class="section">
@@ -870,7 +878,7 @@ function klassLabel(e){
 const state = {profile: store.get("il-profile") || "lacto", view:"search", q:"", cat:"all", kf:"all", limit:40, liveSeq:0};
 if(!["lacto","ovo","vegan"].includes(state.profile)) state.profile = "lacto";
 state.strict = store.get("il-strict") !== "0";
-const PROFILE_NAME = {vegan:"vegan", lacto:"vegetarian (no egg)", ovo:"vegetarian + egg"};
+const PROFILE_NAME = {vegan:"vegan", lacto:"lacto-vegetarian (dairy, no egg)", ovo:"lacto-ovo vegetarian (dairy + egg)"};
 
 function fit(e, p){
   const f = fitRaw(e, p);
@@ -890,6 +898,15 @@ const FIT_ICON = {
   maybe:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 7v6M12 17h.01"/></svg>'
 };
 const fitHTML = f => '<span class="fit ' + f + '">' + FIT_ICON[f] + FIT_TEXT[f] + ' <span style="opacity:.7;font-weight:400">(' + PROFILE_NAME[state.profile] + ')</span></span>';
+const GUIDANCE_NOTE = '<p class="verdict-note">Guidance, not certification. Check the current label.</p>';
+function evidenceText(e){
+  return "Ingredient Ledger curated reference; not manufacturer-specific." +
+    (e.v === "maybe" || e.g === "maybe" ? " Source can vary by maker; confirm the specific ingredient with its manufacturer." : "");
+}
+function evidenceHTML(e){
+  return '<p class="evidence-note"><b>Guidance, not certification.</b> Based on Ingredient Ledger’s curated reference, not maker-specific verification; check the current label.' +
+    (e.v === "maybe" || e.g === "maybe" ? ' <b>Uncertain source:</b> confirm this ingredient with its manufacturer.' : '') + '</p>';
+}
 
 DATA.forEach((e,i) => { e.i = i; e.k = klass(e); });
 
@@ -997,6 +1014,7 @@ function card(e, ts){
         '<div class="badges">' + kbadge(e) + veganBadge(e) + '<span class="badge plain">' + esc(CATNAME[e.c] || "") + '</span></div>' +
       '</div>' +
       fitHTML(fit(e)) +
+        evidenceHTML(e) +
       '<div class="card__body">' +
         '<div class="field"><dt>How it\'s derived</dt><dd>' + (e.o ? '<span class="origin ' + originClass(e.o) + '">' + esc(e.o) + '</span>' : '') + mark(e.h, ts) + '</dd></div>' +
         (e.kl ? '<div class="field"><dt>Animal killed?</dt><dd><span class="killchip ' + e.kl + '">' + ({yes:"Yes", no:"No", none:"No animal", depends:"Depends"})[e.kl] + '</span>' + esc(e.kn || "") + '</dd></div>' : '') +
@@ -1100,7 +1118,7 @@ function whyList(hits){
   let html = list.map(e => {
     const hs = e.h.split(/(?<=\.)\s/).slice(0,3).join(" ");
     return '<div class="whyitem k-' + e.k + '"><div class="hd"><b>' + esc(e.n) + '</b>' + kbadge(e) + (e.o ? '<span class="origin ' + originClass(e.o) + '">' + esc(e.o) + '</span>' : '') + '</div>' +
-      '<p><b>How it\'s derived:</b> ' + esc(hs) + '</p>' + (e.t ? '<p><b>In practice:</b> ' + esc(e.t) + '</p>' : '') + (e.kl ? '<p><b>Animal killed?</b> ' + ({yes:"Yes", no:"No", none:"No animal involved", depends:"Depends on source"})[e.kl] + (e.kl === "yes" || e.kl === "depends" ? " — " + esc(e.kn || "") : "") + '</p>' : '') + (e.alt ? '<p style="color:var(--vegan)"><b style="color:var(--vegan)">Swap for:</b> ' + esc(e.alt) + '</p>' : '') + '</div>';
+      '<p><b>How it\'s derived:</b> ' + esc(hs) + '</p><p><b>Evidence:</b> ' + esc(evidenceText(e)) + '</p>' + (e.t ? '<p><b>In practice:</b> ' + esc(e.t) + '</p>' : '') + (e.kl ? '<p><b>Animal killed?</b> ' + ({yes:"Yes", no:"No", none:"No animal involved", depends:"Depends on source"})[e.kl] + (e.kl === "yes" || e.kl === "depends" ? " — " + esc(e.kn || "") : "") + '</p>' : '') + (e.alt ? '<p style="color:var(--vegan)"><b style="color:var(--vegan)">Swap for:</b> ' + esc(e.alt) + '</p>' : '') + '</div>';
   }).join("");
   if(plain) html += '<p class="note-sm" style="margin:2px 2px 0">' + plain + ' more ingredient' + (plain === 1 ? "" : "s") + ' recognised as plant, mineral or microbial.</p>';
   return html;
@@ -1110,14 +1128,15 @@ const BANNER = {
   veg:    ["Vegetarian — not vegan", "Contains a non-dairy animal by-product such as honey, beeswax or lanolin, but no meat, fish, egg or dairy."],
   lacto:  ["Lacto-vegetarian — contains dairy", "Milk or dairy ingredients are present. No egg, meat, fish or insect-derived ingredient was found."],
   check:  ["Can't tell — needs checking", "At least one ingredient can be plant- or animal-sourced depending on the maker."],
-  egg:    ["Contains egg — non-vegetarian", "An egg or egg derivative was found. Switch to “Vegetarian + egg” at the top if egg is fine for you."],
+  egg:    ["Contains egg — non-vegetarian", "An egg or egg derivative was found. Switch to “Lacto-ovo vegetarian” at the top if egg is fine for you."],
   nonveg: ["Non-vegetarian", "At least one ingredient comes from meat, fish, insects, bone, or an animal-rennet source."]
 };
 function banner(a, extra){
   const k = a.worst || "vegan";
   const nothing = !a.hits.length;
-  const [h, p] = nothing ? ["Nothing flagged", "No animal-derived or uncertain term from the index was found. That is a good sign, not a certificate — “natural flavouring”, unnamed emulsifiers and shared equipment can still hide."] : BANNER[k];
-  return '<div class="vbanner k-' + k + '"><div class="mark k-' + k + '" aria-hidden="true"></div><div><h3>' + h + '</h3><p>' + p + '</p>' + (nothing ? "" : fitHTML(a.fit)) + (extra || "") + '</div></div>';
+  const [h, p] = nothing ? ["Nothing flagged", "No animal-derived or uncertain term from the index was found. Unrecognized terms and shared equipment can still matter."] : BANNER[k];
+  return '<div class="vbanner k-' + k + '"><div class="mark k-' + k + '" aria-hidden="true"></div><div><h3>' + h + '</h3><p>' + p + '</p>' + (nothing ? "" : fitHTML(a.fit)) + GUIDANCE_NOTE +
+    '<p class="evidence-note"><b>Evidence:</b> Recognized terms in the supplied text were matched against Ingredient Ledger’s curated reference; unrecognized terms are not verified.</p>' + (extra || "") + '</div></div>';
 }
 
 /* ====================================================================== SEARCH view */
@@ -1267,6 +1286,12 @@ function productCard(o){
   const a = analyze(o.text || "");
   const k = a.worst || (o.text ? "vegan" : null);
   const flagged = a.hits.filter(e => e.k !== "vegan");
+  const evidence = o.evidence || (o.text
+    ? "Provided ingredient text was matched against Ingredient Ledger’s curated reference; the source data may be incomplete or out of date."
+    : "No ingredient list is available, so no ingredient-based verdict can be made.");
+  const unknownNote = a.unknown.length
+    ? '<p class="evidence-note"><b>Unrecognized text (not assessed):</b> ' + esc(a.unknown.slice(0, 5).join(", ")) + (a.unknown.length > 5 ? " and " + (a.unknown.length - 5) + " more." : ".") + '</p>'
+    : "";
   const offV = o.p ? offTag(o.p, "vegan") : null, offG = o.p ? offTag(o.p, "veg") : null;
   const offTxt = (v, w) => v ? '<span class="badge plain">Open Food Facts: ' + w + " " + {yes:"yes", no:"no", maybe:"maybe"}[v] + '</span>' : "";
   let head;
@@ -1278,6 +1303,7 @@ function productCard(o){
     '<div class="product__body"><h4>' + esc(o.title || "Unnamed product") + '</h4>' +
     '<div class="brandline">' + esc(o.sub || "") + '</div>' +
     '<div class="verdictrow">' + head + (a.hits.length ? '<span class="fit ' + a.fit + '" style="margin:0">' + FIT_ICON[a.fit] + FIT_TEXT[a.fit] + '</span>' : '') + offTxt(offV, "vegan") + offTxt(offG, "vegetarian") + (o.badges || "") + '</div>' +
+    (o.text ? GUIDANCE_NOTE : '') + '<p class="evidence-note"><b>Evidence:</b> ' + esc(evidence) + '</p>' + unknownNote +
     (o.text ? '<div class="ichips">' + a.chips + '</div>' : '') +
     (flagged.length ? '<div class="why">' + whyList(flagged) + '</div>' : '') +
     (o.text ? '<details class="raw"><summary>Show original ingredient text</summary><div class="rawtext">' + esc(o.text) + '</div></details>' : '') +
@@ -1323,6 +1349,11 @@ function offToCard(p, base){
   const name = p.product_name || p.product_name_en || "";
   return productCard({
     p, title: name, text: real || pseudo,
+    evidence: real
+      ? "Open Food Facts ingredient text checked against Ingredient Ledger’s curated reference; the record may be incomplete or out of date."
+      : pseudo
+        ? "No ingredient list is recorded. Ingredient hints are based only on Open Food Facts allergen, additive and category tags, checked against Ingredient Ledger’s curated reference."
+        : "No ingredient list or relevant tag hints are recorded, so no ingredient-based verdict can be made.",
     sub: [p.brands, p.quantity, p.code].filter(Boolean).join(" · ") || "brand not listed", img: p.image_front_small_url,
     badges: lab ? '<span class="badge plain">Pack label: ' + lab + '</span>' : "",
     note: notes.join(" "),
@@ -1792,6 +1823,10 @@ function renderIndex(){
   const kf = state.kf === "alt" ? "all" : state.kf;
   let rows = iq ? searchLocal(iq, {cat:state.cat, k:kf}) : DATA.filter(e => (state.cat === "all" || e.c === state.cat) && (kf === "all" || e.k === kf));
   if(state.kf === "alt") rows = rows.filter(e => e.alt);
+  const fitPriority = {ok:0, maybe:1, strict:1, no:2};
+  rows = rows.map((e, i) => ({e, i}))
+    .sort((a, b) => fitPriority[fit(a.e)] - fitPriority[fit(b.e)] || a.i - b.i)
+    .map(row => row.e);
   const ts = toks(iq);
   $("#shown").textContent = rows.length; $("#total").textContent = DATA.length;
   const bits = []; if(state.cat !== "all") bits.push(CATNAME[state.cat]); if(state.kf !== "all") bits.push(state.kf === "alt" ? "has a swap" : K[state.kf].name); if(iq) bits.push('“' + iq + '”');

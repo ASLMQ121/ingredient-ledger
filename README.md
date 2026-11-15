@@ -9,7 +9,7 @@ A single static page: no accounts, no tracking, no server of its own. It works o
 | Verdict | Meaning |
 |---|---|
 | **Vegan** | Plant, mineral, fungal or microbial. No animal product of any kind. |
-| **Vegetarian** | No meat, fish, egg or dairy, but contains a non-dairy by-product of living animals (honey, beeswax, lanolin). Nothing killed. |
+| **Vegetarian (no dairy)** | No meat, fish, egg or dairy, but contains a non-dairy by-product of living animals (honey, beeswax, lanolin). Nothing killed. |
 | **Lacto-vegetarian** | Contains milk or dairy (ghee, butter, curd, paneer, whey, casein). Taken from a living animal, nothing killed. |
 | **Non-vegetarian** | Egg, fish or meat, or any essence, stock, fat, gelatine, extract or by-product of them, plus insects (carmine, shellac) and animal rennet. |
 | **Needs checking** | Can come from plants or animals depending on the maker. With **Strict** on (the default), these count as *avoid*. |
@@ -26,7 +26,7 @@ A single static page: no accounts, no tracking, no server of its own. It works o
 - **Scan a barcode** with the phone camera, or from a photo.
 - **Photo of a label.** On-device text recognition reads the ingredient list, then every ingredient is colour-coded.
 - **Paste anything**, such as a label, menu or medicine leaflet, or read a web page.
-- **Your diet:** Vegetarian (no egg), Vegetarian + egg, or Vegan. Every result says "Fine for you / Not for you / Check".
+- **Your diet:** Lacto-vegetarian (dairy, no egg), Lacto-ovo vegetarian (dairy + egg), or Vegan. Every result says "Fine for you / Not for you / Check". The Reference Index puts compatible matches first while keeping all filtered matches visible.
 - **Restaurants & food places** worldwide or near you: 100% vegan, pure vegetarian, vegan options, vegetarian options, with open-now status, menu links and a cuisine-by-cuisine "what to order and what to ask" guide.
 - **Grocery & food stores:** health/organic, fresh produce and markets, Indian and world grocers, and supermarkets. "Check stock" links search the store's own website, and **"Recently seen here"** shows products shoppers have recently photographed on its shelves (Open Prices).
 - **"Where it's been seen"** for any barcode: shops where it was recently on sale, with price and date.
@@ -87,6 +87,8 @@ Or from a terminal: `npx wrangler pages deploy . --project-name ingredient-ledge
 ## Honest limits
 
 - **Formulations change.** Treat every verdict as a strong starting point and check the pack in your hand.
+- **Sources can vary by maker.** A curated ingredient reference is not product-specific verification; unclear sources are marked for checking (or Avoid with Strict on), and no numeric confidence score is implied.
+- **Strict only changes uncertain ingredient sources.** “May contain” and other shared-line warnings are shown separately; Strict does not assess cross-contact risk.
 - A clean scan means nothing flagged, not certified.
 - Crowd-sourced data (Open Food Facts, OpenStreetMap, Open Prices) can be incomplete or out of date.
 - **There is no free public source of live store inventory.** "Recently seen" is proof of a past sighting, not current stock.
