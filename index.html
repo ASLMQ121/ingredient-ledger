@@ -791,7 +791,7 @@ footer p{margin:0 0 6px;font-size:12.5px;color:var(--faint);line-height:1.6;max-
       <label class="lbl2" for="k-usda">USDA FoodData Central key (optional)</label>
       <input id="k-usda" class="field-in" autocomplete="off" spellcheck="false" placeholder="Blank = shared DEMO_KEY (about 30 searches an hour)">
     </div>
-    <p>Keys are saved <b>only in this browser on this device</b> and sent only to their own service. Don't type them into the file itself if you plan to share it. Free Spoonacular accounts have a small daily quota, so Spoonacular is searched only when you press Enter or tap an example, not while you type. Free USDA keys: <a href="https://fdc.nal.usda.gov/api-key-signup" target="_blank" rel="noopener">fdc.nal.usda.gov/api-key-signup</a>.</p>
+    <p>Keys are stored in this browser's <code>localStorage</code>. Your USDA key is included in requests to FoodData Central. On Cloudflare Pages, if a direct USDA request fails, this site may retry through <code>/api/proxy</code>; the proxy request URL contains the key. Spoonacular keys are sent to Spoonacular. Free Spoonacular accounts have a small daily quota, so Spoonacular is searched only when you press Enter or tap an example, not while you type. Free USDA keys: <a href="https://fdc.nal.usda.gov/api-key-signup" target="_blank" rel="noopener">fdc.nal.usda.gov/api-key-signup</a>.</p>
     <div class="keystatus" id="keystatus" aria-live="polite"></div>
     <div class="row2">
       <button class="btn ghost sm" type="button" id="keytest">Test Spoonacular</button>
