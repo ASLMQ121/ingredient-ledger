@@ -1169,7 +1169,7 @@ function runSearch(raw, opts){
   html += '</section>';
 
   const wantFood = $("#s-food").checked, wantMed = $("#s-med").checked, wantCare = $("#s-care").checked, wantWiki = $("#s-wiki").checked;
-  const wantMeal = $("#s-meal").checked, wantUsda = $("#s-usda").checked, wantSp = $("#s-sp").checked && !!KEYS.sp;
+  const wantMeal = $("#s-meal").checked, wantUsda = $("#s-usda").checked, wantSp = $("#s-sp").checked && spAvailable();
   const secs = [];
   if(wantFood) secs.push(["food", "Packaged foods & drinks", "Open Food Facts"]);
   if(wantMed && !isBarcode) secs.push(["med", "Medicines & vaccines", "openFDA · DailyMed"]);
@@ -1452,11 +1452,21 @@ const KEYS = {
   get usdaOwn(){ return (store.get("il-usda") || "").trim(); },
   get usda(){ return this.usdaOwn || "DEMO_KEY"; }
 };
+/* Spoonacular: the visitor's own key (stored in their browser) wins; otherwise the site's key via /api/spoon on Cloudflare */
+const SERVER_SP = {ok:false};
+const spAvailable = () => !!KEYS.sp || SERVER_SP.ok;
 function refreshKeyUI(){
-  const on = !!KEYS.sp;
-  $$(".keypill").forEach(b => { b.classList.toggle("on", on); b.querySelector("span").textContent = on ? "API keys · Spoonacular on" : "API keys"; });
+  const on = spAvailable();
+  $$(".keypill").forEach(b => { b.classList.toggle("on", on); b.querySelector("span").textContent = KEYS.sp ? "API keys · Spoonacular on" : SERVER_SP.ok ? "API keys · Spoonacular (site)" : "API keys"; });
   const sp = $("#s-sp"); sp.disabled = !on; sp.parentElement.style.opacity = on ? "" : ".55";
   sp.parentElement.title = on ? "" : "Add your Spoonacular key under API keys";
+}
+async function checkServerSpoon(){
+  if(!PROXY) return;
+  try{
+    const r = await fetch("/api/spoon?path=status", {cache:"no-store"});
+    if(r.ok && /json/.test(r.headers.get("content-type") || "")){ const j = await r.json(); SERVER_SP.ok = !!j.configured; refreshKeyUI(); }
+  }catch(_){}
 }
 function openKeys(){
   $("#k-sp").value = KEYS.sp; $("#k-usda").value = KEYS.usdaOwn; $("#keystatus").textContent = "";
@@ -1465,7 +1475,12 @@ function openKeys(){
 const SP = "https://api.spoonacular.com";
 async function spGet(path, sig, key){
   const k = key || KEYS.sp;
-  return getJSON(SP + path + (path.includes("?") ? "&" : "?") + "apiKey=" + encodeURIComponent(k), sig, {timeout:15000});
+  if(k) return getJSON(SP + path + (path.includes("?") ? "&" : "?") + "apiKey=" + encodeURIComponent(k), sig, {timeout:15000});
+  if(SERVER_SP.ok){
+    const [p, q] = path.split("?");
+    return getJSONdirect("/api/spoon?path=" + encodeURIComponent(p) + (q ? "&" + q : ""), sig, {timeout:15000});
+  }
+  const err = new Error("No Spoonacular key"); err.status = 401; throw err;
 }
 const spErr = err => err && err.status === 402 ? "Today's free Spoonacular quota is used up — it resets daily."
   : err && (err.status === 401 || err.status === 403) ? "Spoonacular rejected the key — re-copy it under API keys." : null;
@@ -1546,7 +1561,7 @@ function menuList(items){
 async function menuSearch(){
   const q = $("#menuq").value.trim(), out = $("#menuout");
   if(!q){ out.innerHTML = '<div class="msg">Type a dish or chain name first.</div>'; return; }
-  if(!KEYS.sp){ out.innerHTML = '<div class="msg">This needs a free Spoonacular key. <button class="btn sm ghost" data-openkeys>Add key</button></div>'; return; }
+  if(!spAvailable()){ out.innerHTML = '<div class="msg">This needs a free Spoonacular key. <button class="btn sm ghost" data-openkeys>Add key</button></div>'; return; }
   out.innerHTML = '<div class="msg"><span class="spinner"></span> Searching chain menus…</div>';
   try{
     const j = await spGet("/food/menuItems/search?number=12&query=" + encodeURIComponent(q));
@@ -2329,7 +2344,7 @@ $("#wantprod").addEventListener("input", debounce(e => { EAT.product = e.target.
 if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 
 /* ====================================================================== init */
-refreshKeyUI();
+refreshKeyUI(); checkServerSpoon();
 buildLegend(); buildTiles(); buildIndexChips(); buildCuisines();
 $("#total").textContent = DATA.length;
 $("#built").textContent = DATA.length + " entries · built " + new Date().toISOString().slice(0,10);

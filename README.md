@@ -60,6 +60,8 @@ Open `index.html` in a browser. That's it.
 
 **Cloudflare Pages (recommended):** in the Cloudflare dashboard, go to Workers & Pages → Create → Pages → *Connect to Git* and pick this repo. Set build command to *(none)* and output directory to `/`. Cloudflare also runs `functions/api/proxy.js`, which relays the few allow-listed APIs that browsers can't call directly (for example DailyMed and Fruityvice) and caches them for an hour.
 
+**Spoonacular for every visitor (optional):** in the Cloudflare Pages project, go to Settings → Variables and Secrets and add a secret named `SPOONACULAR_KEY`. `functions/api/spoon.js` then calls Spoonacular server-side with that key. The key never reaches the browser, only the read-only endpoints the site uses are allowed, and answers are cached for 6 hours to save quota. A visitor's own key, if they enter one under API keys, still takes priority.
+
 Or from a terminal: `npx wrangler pages deploy . --project-name ingredient-ledger`
 
 ## Honest limits
