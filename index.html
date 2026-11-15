@@ -2236,44 +2236,63 @@ $("#menuq").addEventListener("keydown", e => { if(e.key === "Enter") menuSearch(
 $("#menuout").addEventListener("click", e => { if(e.target.closest("[data-openkeys]")) openKeys(); });
 
 /* ---------- camera barcode scanning ---------- */
-const CAM = {stream:null, timer:null, zx:null};
+const CAM = {stream:null, timer:null, zx:null, generation:0};
 function loadScript(src){ return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("couldn't load " + src)); document.head.appendChild(s); }); }
 async function zxing(){ if(!window.ZXing) await loadScript("https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"); return window.ZXing; }
+function stopStream(stream){ if(stream) stream.getTracks().forEach(t => t.stop()); }
 function gotBarcode(code){
   stopCam(); const d = $("#camdlg"); if(d.open) d.close();
   showView("search"); $("#q").value = code; runSearch(code, {immediate:true});
 }
 async function startCam(){
   const d = $("#camdlg"), st = $("#camstatus"), v = $("#camvideo");
+  if(d.open) return;
   if(d.showModal) d.showModal(); else d.setAttribute("open", "");
+  const generation = ++CAM.generation;
+  const current = () => generation === CAM.generation && d.open;
   st.textContent = "Starting the camera…";
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ st.textContent = "This browser can't open the camera here. Use a photo instead, or type the numbers."; return; }
   try{
     if("BarcodeDetector" in window){
       const det = new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128","code_39","itf"]});
-      CAM.stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}, audio:false});
-      v.srcObject = CAM.stream; await v.play();
+      const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}, audio:false});
+      if(!current()){ stopStream(stream); return; }
+      CAM.stream = stream;
+      v.srcObject = stream; await v.play();
+      if(!current()){ stopStream(stream); if(CAM.stream === stream) CAM.stream = null; if(v.srcObject === stream) v.srcObject = null; return; }
       st.textContent = "Point the camera at the barcode and hold steady.";
       const tick = async () => {
-        if(!CAM.stream) return;
-        try{ const r = await det.detect(v); if(r && r.length && /^\d{6,14}$/.test(r[0].rawValue)){ gotBarcode(r[0].rawValue); return; } }catch(_){}
+        if(!current() || CAM.stream !== stream) return;
+        try{ const r = await det.detect(v); if(!current() || CAM.stream !== stream) return; if(r && r.length && /^\d{6,14}$/.test(r[0].rawValue)){ gotBarcode(r[0].rawValue); return; } }catch(_){}
         CAM.timer = setTimeout(tick, 220);
       };
       tick();
     } else {
       st.textContent = "Loading the scanner…";
       const Z = await zxing();
-      CAM.zx = new Z.BrowserMultiFormatReader();
+      if(!current()) return;
+      const reader = new Z.BrowserMultiFormatReader();
+      CAM.zx = reader;
       st.textContent = "Point the camera at the barcode and hold steady.";
-      CAM.zx.decodeFromVideoDevice(undefined, v, (res) => { if(res && /^\d{6,14}$/.test(res.getText())) gotBarcode(res.getText()); });
+      const controls = await reader.decodeFromVideoDevice(undefined, v, res => {
+        if(current() && res && /^\d{6,14}$/.test(res.getText())) gotBarcode(res.getText());
+      });
+      if(!current()){
+        if(controls) controls.stop();
+        try{ reader.reset(); }catch(_){}
+        if(CAM.zx === reader) CAM.zx = null;
+      }
     }
   }catch(err){
+    if(!current()) return;
     st.textContent = (/Permission|NotAllowed/i.test(err.name + err.message) ? "Camera permission was refused." : "Camera unavailable (" + err.message + ").") + " Use a photo instead, or type the numbers.";
   }
 }
 function stopCam(){
+  CAM.generation++;
   clearTimeout(CAM.timer);
-  if(CAM.stream){ CAM.stream.getTracks().forEach(t => t.stop()); CAM.stream = null; }
+  if(CAM.stream){ stopStream(CAM.stream); CAM.stream = null; }
+  $("#camvideo").srcObject = null;
   if(CAM.zx){ try{ CAM.zx.reset(); }catch(_){} CAM.zx = null; }
 }
 async function barcodeFromPhoto(file){
