@@ -54,6 +54,26 @@ Not used: Edamam, API Ninjas, FatSecret and RapidAPI need sign-up. wger re-publi
 
 Open `index.html` in a browser. That's it.
 
+## Browser screenshots
+
+Requires Node.js 22 and npm. The Playwright suite checks the search/home flow
+and Reference Index in desktop and mobile viewports. It also checks index
+filtering and a denied-camera flow using a mocked camera permission response;
+external requests are intercepted so tests do not need API credentials,
+third-party services, or camera hardware.
+
+```sh
+npm ci
+npx playwright install chromium
+npm run test:visual
+```
+
+Named screenshots are saved to `test-results/screenshots/` (for example,
+`search-home-desktop.png` and `reference-index-mobile.png`). The directory is
+generated output and is git-ignored. In GitHub Actions, download the
+`ingredient-ledger-screenshots` artifact from the Visual browser tests run to
+inspect the captured images.
+
 ## Deploy
 
 **GitHub Pages:** in the repo, go to Settings → Pages → *Deploy from a branch* → `main` / root. The site appears at `https://<user>.github.io/ingredient-ledger/`.
