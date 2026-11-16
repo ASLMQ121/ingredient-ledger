@@ -48,7 +48,7 @@ for (const viewport of viewports) {
     await page.setViewportSize(viewport.size);
     await page.goto("/#search");
 
-    await expect(page.getByRole("heading", { name: /Is it vegetarian\?/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Vegan, vegetarian, or non-veg\?/ })).toBeVisible();
     await expect(page.locator("#home")).toBeVisible();
     await expect(page.locator("#tiles .tile").first()).toBeVisible();
     await capture(page, `search-home-${viewport.name}.png`);
@@ -108,10 +108,20 @@ test("filters the Reference Index and handles denied camera access without hardw
 test("shows restaurant-chain scope and filters entries by region", async ({ page }) => {
   await page.goto("/#search");
   await page.getByRole("tab", { name: "Index" }).click();
+  const regionFilterRow = page.locator("#regionfilterrow");
+  const verdictFilters = page.locator("#kchips");
+  const vaccines = page.locator("#catchips").getByRole("button", { name: /Vaccines/ });
+  await expect(regionFilterRow).toBeHidden();
+  await vaccines.click();
+  await expect(regionFilterRow).toBeHidden();
+  await expect(verdictFilters).toBeVisible();
+
   await page.locator("#catchips").getByRole("button", { name: /Restaurant chains/ }).click();
 
-  const regionFilter = page.getByRole("combobox", { name: "Filter restaurant chains by region" });
+  const regionFilter = page.locator("#regionfilter");
   const chains = page.locator("#ilist .card");
+  await expect(regionFilterRow).toBeVisible();
+  await expect(regionFilterRow).not.toContainText("Any verdict");
   await expect(regionFilter).toHaveValue("all");
   const indiaChain = chains.filter({ hasText: "McDonald's India (veg menu)" });
   await expect(indiaChain.locator(".badges")).toContainText("India");
@@ -121,4 +131,10 @@ test("shows restaurant-chain scope and filters entries by region", async ({ page
   await regionFilter.selectOption("India");
   await expect(chains.filter({ hasText: "Domino's India" })).toBeVisible();
   await expect(chains.filter({ hasText: "Taco Bell" })).toHaveCount(0);
+
+  await vaccines.click();
+  await expect(regionFilterRow).toBeHidden();
+  await expect(regionFilter).toHaveValue("all");
+  await expect(page.locator("#activetag")).not.toContainText("India");
+  await expect(page.locator("#ilist .card").first()).toBeVisible();
 });
