@@ -672,8 +672,10 @@ footer p{margin:0 0 6px;font-size:12.5px;color:var(--faint);line-height:1.6;max-
     </div>
     <div class="filters">
       <div class="scroll-chips" id="catchips" role="group" aria-label="Filter by category"></div>
-      <div class="filterrow">
+      <div class="filterrow" id="regionfilterrow" hidden>
         <label class="region-filter" for="regionfilter"><span>Chain region</span><select id="regionfilter" class="field-in miniinput" aria-label="Filter restaurant chains by region"></select></label>
+      </div>
+      <div class="filterrow">
         <div class="scroll-chips" id="kchips" role="group" aria-label="Filter by verdict"></div>
         <input id="iq" class="field-in miniinput" type="search" placeholder="Filter this list…" aria-label="Filter the index" autocomplete="off">
       </div>
@@ -1854,9 +1856,15 @@ function buildIndexChips(){
 }
 let iq = "";
 function renderIndex(){
+  const isRestaurantCategory = state.cat === "rest";
+  $("#regionfilterrow").hidden = !isRestaurantCategory;
+  if(!isRestaurantCategory && state.region !== "all"){
+    state.region = "all";
+    $("#regionfilter").value = "all";
+  }
   const kf = state.kf === "alt" ? "all" : state.kf;
   let rows = iq ? searchLocal(iq, {cat:state.cat, k:kf}) : DATA.filter(e => (state.cat === "all" || e.c === state.cat) && (kf === "all" || e.k === kf));
-  if(state.region !== "all") rows = rows.filter(e => e.c === "rest" && e.region === state.region);
+  if(isRestaurantCategory && state.region !== "all") rows = rows.filter(e => e.region === state.region);
   if(state.kf === "alt") rows = rows.filter(e => e.alt);
   const fitPriority = {ok:0, maybe:1, strict:1, no:2};
   rows = rows.map((e, i) => ({e, i}))
@@ -1864,7 +1872,7 @@ function renderIndex(){
     .map(row => row.e);
   const ts = toks(iq);
   $("#shown").textContent = rows.length; $("#total").textContent = DATA.length;
-  const bits = []; if(state.cat !== "all") bits.push(CATNAME[state.cat]); if(state.region !== "all") bits.push(state.region); if(state.kf !== "all") bits.push(state.kf === "alt" ? "has a swap" : K[state.kf].name); if(iq) bits.push('“' + iq + '”');
+  const bits = []; if(state.cat !== "all") bits.push(CATNAME[state.cat]); if(isRestaurantCategory && state.region !== "all") bits.push(state.region); if(state.kf !== "all") bits.push(state.kf === "alt" ? "has a swap" : K[state.kf].name); if(iq) bits.push('“' + iq + '”');
   $("#activetag").textContent = bits.length ? "· " + bits.join(" · ") : "";
   if(!rows.length){ $("#ilist").innerHTML = '<div class="empty"><b>Nothing matches that.</b>Try a broader word, or an E-number such as E120 — or search live from the Search tab.</div>'; return; }
   $("#ilist").innerHTML = rows.slice(0, state.limit).map(e => card(e, ts)).join("") +
@@ -2281,7 +2289,7 @@ $$(".scroll-chips").forEach(row => row.addEventListener("focusin", e => {
   if(chipRect.right > rowRect.right) row.scrollLeft += chipRect.right - rowRect.right;
   else if(chipRect.left < rowRect.left) row.scrollLeft -= rowRect.left - chipRect.left;
 }));
-$("#catchips").addEventListener("click", e => { const b = e.target.closest(".chip"); if(!b) return; state.cat = b.dataset.cat; if(state.cat !== "all" && state.cat !== "rest") state.region = "all"; $("#regionfilter").value = state.region; state.limit = 40; $$("#catchips .chip").forEach(c => c.setAttribute("aria-pressed", String(c === b))); renderIndex(); });
+$("#catchips").addEventListener("click", e => { const b = e.target.closest(".chip"); if(!b) return; state.cat = b.dataset.cat; if(state.cat !== "rest") state.region = "all"; $("#regionfilter").value = state.region; state.limit = 40; $$("#catchips .chip").forEach(c => c.setAttribute("aria-pressed", String(c === b))); renderIndex(); });
 $("#kchips").addEventListener("click", e => { const b = e.target.closest(".chip"); if(!b) return; state.kf = b.dataset.kf; state.limit = 40; $$("#kchips .chip").forEach(c => c.setAttribute("aria-pressed", String(c === b))); renderIndex(); });
 $("#regionfilter").addEventListener("change", e => { state.region = e.target.value; state.limit = 40; renderIndex(); });
 window.addEventListener("resize", updateFilterHint);
