@@ -104,3 +104,21 @@ test("filters the Reference Index and handles denied camera access without hardw
   await expect(page.locator("#camdlg")).toBeVisible();
   await expect(page.locator("#camstatus")).toContainText("Camera permission was refused");
 });
+
+test("shows restaurant-chain scope and filters entries by region", async ({ page }) => {
+  await page.goto("/#search");
+  await page.getByRole("tab", { name: "Index" }).click();
+  await page.locator("#catchips").getByRole("button", { name: /Restaurant chains/ }).click();
+
+  const regionFilter = page.getByRole("combobox", { name: "Filter restaurant chains by region" });
+  const chains = page.locator("#ilist .card");
+  await expect(regionFilter).toHaveValue("all");
+  const indiaChain = chains.filter({ hasText: "McDonald's India (veg menu)" });
+  await expect(indiaChain.locator(".badges")).toContainText("India");
+  await expect(indiaChain).toContainText("menus and preparation can vary by location");
+  await expect(chains.filter({ hasText: "Taco Bell" })).toBeVisible();
+
+  await regionFilter.selectOption("India");
+  await expect(chains.filter({ hasText: "Domino's India" })).toBeVisible();
+  await expect(chains.filter({ hasText: "Taco Bell" })).toHaveCount(0);
+});

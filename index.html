@@ -401,6 +401,8 @@ select.field-in{appearance:none;background:var(--surface) url("data:image/svg+xm
 .scroll-chips::-webkit-scrollbar-track{background:var(--surface-2);border-radius:99px}
 .filter-hint{margin:4px 0 0;font-size:11px;color:var(--dim)}
 .filterrow{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:11px}
+.region-filter{display:flex;align-items:center;gap:8px;flex:0 1 290px;font-size:11px;color:var(--dim);white-space:nowrap}
+.region-filter select{min-width:0}
 .countline{margin:18px 0 14px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
 .countline .n{color:var(--ink);font-weight:500}
 .miniinput{height:40px;max-width:360px;flex:1 1 220px}
@@ -666,11 +668,12 @@ footer p{margin:0 0 6px;font-size:12.5px;color:var(--faint);line-height:1.6;max-
     <div class="pagehead">
       <p class="kicker">The reference index</p>
       <h2>Every entry, with its source and process.</h2>
-      <p id="indexsub">Browse additives, ingredients, cheeses, dishes, drinks, medicines, vaccines and hidden label terms.</p>
+      <p id="indexsub">Browse additives, ingredients, cheeses, dishes, drinks, medicines, vaccines and hidden label terms. Restaurant-chain guidance is market-specific; use the region filter and verify your local menu, since ingredients and preparation vary by location.</p>
     </div>
     <div class="filters">
       <div class="scroll-chips" id="catchips" role="group" aria-label="Filter by category"></div>
       <div class="filterrow">
+        <label class="region-filter" for="regionfilter"><span>Chain region</span><select id="regionfilter" class="field-in miniinput" aria-label="Filter restaurant chains by region"></select></label>
         <div class="scroll-chips" id="kchips" role="group" aria-label="Filter by verdict"></div>
         <input id="iq" class="field-in miniinput" type="search" placeholder="Filter this list…" aria-label="Filter the index" autocomplete="off">
       </div>
@@ -875,7 +878,7 @@ function klassLabel(e){
   if(k === "check" && e.v === "no") return "Check · not vegan";
   return K[k].label;
 }
-const state = {profile: store.get("il-profile") || "lacto", view:"search", q:"", cat:"all", kf:"all", limit:40, liveSeq:0};
+const state = {profile: store.get("il-profile") || "lacto", view:"search", q:"", cat:"all", kf:"all", region:"all", limit:40, liveSeq:0};
 if(!["lacto","ovo","vegan"].includes(state.profile)) state.profile = "lacto";
 state.strict = store.get("il-strict") !== "0";
 const PROFILE_NAME = {vegan:"vegan", lacto:"lacto-vegetarian (dairy, no egg)", ovo:"lacto-ovo vegetarian (dairy + egg)"};
@@ -905,7 +908,8 @@ function evidenceText(e){
 }
 function evidenceHTML(e){
   return '<p class="evidence-note"><b>Guidance, not certification.</b> Based on Ingredient Ledger’s curated reference, not maker-specific verification; check the current label.' +
-    (e.v === "maybe" || e.g === "maybe" ? ' <b>Uncertain source:</b> confirm this ingredient with its manufacturer.' : '') + '</p>';
+    (e.v === "maybe" || e.g === "maybe" ? ' <b>Uncertain source:</b> confirm this ingredient with its manufacturer.' : '') +
+    (e.c === "rest" ? ' This is <b>' + esc(e.region) + '</b> guidance; menus and preparation can vary by location. Check the current local menu.' : '') + '</p>';
 }
 
 DATA.forEach((e,i) => { e.i = i; e.k = klass(e); });
@@ -913,11 +917,27 @@ DATA.forEach((e,i) => { e.i = i; e.k = klass(e); });
 /* ====================================================================== search index */
 const CATS = [["all","Everything"],["add","Additives & E-numbers"],["ing","Ingredients & dairy"],["dish","Dishes"],["rest","Restaurant chains"],["drink","Drinks"],["med","Medicines"],["vac","Vaccines"],["hidden","Hidden label terms"]];
 const CATNAME = Object.fromEntries(CATS);
+const RESTAURANT_REGIONS = {
+  "McDonald's India (veg menu)":"India",
+  "Domino's India":"India",
+  "Pizza Hut India":"India",
+  "KFC India":"India",
+  "Subway India":"India",
+  "Burger King India":"India",
+  "Starbucks India":"India",
+  "Haldiram's":"India",
+  "Saravana Bhavan and South Indian veg chains":"India",
+  "Barbeque Nation and buffet grills":"India",
+  "Chipotle-style fast casual (US/global)":"US / global",
+  "Taco Bell":"Varies by market",
+  "Street food and local dhabas":"South Asia / varies"
+};
+DATA.forEach(e => { if(e.c === "rest") e.region = RESTAURANT_REGIONS[e.n] || "Varies by location"; });
 DATA.forEach(e => {
   e._n = norm(e.n);
   e._kw = (e.kw || []).map(norm);
   e._aka = norm(e.aka);
-  e._h = norm(e.n + " " + e.aka + " " + e.s + " " + e.t + " " + (e.kw||[]).join(" "));
+  e._h = norm(e.n + " " + e.aka + " " + e.s + " " + e.t + " " + (e.region || "") + " " + (e.kw||[]).join(" "));
 });
 function qnorm(q){
   let s = norm(q).trim();
@@ -1011,7 +1031,7 @@ function card(e, ts){
     '<div class="card__main">' +
       '<div class="card__head">' +
         '<div class="card__id"><h3>' + mark(e.n, ts) + '</h3><div class="aka">' + mark(e.aka, ts) + '</div></div>' +
-        '<div class="badges">' + kbadge(e) + veganBadge(e) + '<span class="badge plain">' + esc(CATNAME[e.c] || "") + '</span></div>' +
+        '<div class="badges">' + kbadge(e) + veganBadge(e) + '<span class="badge plain">' + esc(CATNAME[e.c] || "") + '</span>' + (e.c === "rest" ? '<span class="badge plain">' + esc(e.region) + '</span>' : '') + '</div>' +
       '</div>' +
       fitHTML(fit(e)) +
         evidenceHTML(e) +
@@ -1824,6 +1844,9 @@ async function readPage(){
 function buildIndexChips(){
   const cnt = {}; DATA.forEach(e => cnt[e.c] = (cnt[e.c]||0) + 1);
   $("#catchips").innerHTML = CATS.map(([k,l]) => '<button class="chip" data-cat="' + k + '" aria-pressed="' + (k === state.cat) + '">' + l + '<small>' + (k === "all" ? DATA.length : cnt[k]||0) + '</small></button>').join("");
+  const regions = [...new Set(DATA.filter(e => e.c === "rest").map(e => e.region))];
+  $("#regionfilter").innerHTML = '<option value="all">All regions</option>' + regions.map(region => '<option value="' + esc(region) + '">' + esc(region) + '</option>').join("");
+  $("#regionfilter").value = state.region || "all";
   const kc = {}; DATA.forEach(e => kc[e.k] = (kc[e.k]||0) + 1);
   $("#kchips").innerHTML = '<button class="chip" data-kf="all" aria-pressed="true">Any verdict</button>' +
     '<button class="chip" data-kf="alt" aria-pressed="false">Has a swap<small>' + DATA.filter(e => e.alt).length + '</small></button>' +
@@ -1833,6 +1856,7 @@ let iq = "";
 function renderIndex(){
   const kf = state.kf === "alt" ? "all" : state.kf;
   let rows = iq ? searchLocal(iq, {cat:state.cat, k:kf}) : DATA.filter(e => (state.cat === "all" || e.c === state.cat) && (kf === "all" || e.k === kf));
+  if(state.region !== "all") rows = rows.filter(e => e.c === "rest" && e.region === state.region);
   if(state.kf === "alt") rows = rows.filter(e => e.alt);
   const fitPriority = {ok:0, maybe:1, strict:1, no:2};
   rows = rows.map((e, i) => ({e, i}))
@@ -1840,7 +1864,7 @@ function renderIndex(){
     .map(row => row.e);
   const ts = toks(iq);
   $("#shown").textContent = rows.length; $("#total").textContent = DATA.length;
-  const bits = []; if(state.cat !== "all") bits.push(CATNAME[state.cat]); if(state.kf !== "all") bits.push(state.kf === "alt" ? "has a swap" : K[state.kf].name); if(iq) bits.push('“' + iq + '”');
+  const bits = []; if(state.cat !== "all") bits.push(CATNAME[state.cat]); if(state.region !== "all") bits.push(state.region); if(state.kf !== "all") bits.push(state.kf === "alt" ? "has a swap" : K[state.kf].name); if(iq) bits.push('“' + iq + '”');
   $("#activetag").textContent = bits.length ? "· " + bits.join(" · ") : "";
   if(!rows.length){ $("#ilist").innerHTML = '<div class="empty"><b>Nothing matches that.</b>Try a broader word, or an E-number such as E120 — or search live from the Search tab.</div>'; return; }
   $("#ilist").innerHTML = rows.slice(0, state.limit).map(e => card(e, ts)).join("") +
@@ -2257,8 +2281,9 @@ $$(".scroll-chips").forEach(row => row.addEventListener("focusin", e => {
   if(chipRect.right > rowRect.right) row.scrollLeft += chipRect.right - rowRect.right;
   else if(chipRect.left < rowRect.left) row.scrollLeft -= rowRect.left - chipRect.left;
 }));
-$("#catchips").addEventListener("click", e => { const b = e.target.closest(".chip"); if(!b) return; state.cat = b.dataset.cat; state.limit = 40; $$("#catchips .chip").forEach(c => c.setAttribute("aria-pressed", String(c === b))); renderIndex(); });
+$("#catchips").addEventListener("click", e => { const b = e.target.closest(".chip"); if(!b) return; state.cat = b.dataset.cat; if(state.cat !== "all" && state.cat !== "rest") state.region = "all"; $("#regionfilter").value = state.region; state.limit = 40; $$("#catchips .chip").forEach(c => c.setAttribute("aria-pressed", String(c === b))); renderIndex(); });
 $("#kchips").addEventListener("click", e => { const b = e.target.closest(".chip"); if(!b) return; state.kf = b.dataset.kf; state.limit = 40; $$("#kchips .chip").forEach(c => c.setAttribute("aria-pressed", String(c === b))); renderIndex(); });
+$("#regionfilter").addEventListener("change", e => { state.region = e.target.value; state.limit = 40; renderIndex(); });
 window.addEventListener("resize", updateFilterHint);
 $("#iq").addEventListener("input", debounce(e => { iq = e.target.value.trim(); state.limit = 40; renderIndex(); }, 150));
 $("#ilist").addEventListener("click", e => { if(e.target.id === "more"){ state.limit += 40; renderIndex(); } });
