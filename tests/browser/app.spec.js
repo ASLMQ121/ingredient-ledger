@@ -48,7 +48,7 @@ for (const viewport of viewports) {
     await page.setViewportSize(viewport.size);
     await page.goto("/#search");
 
-    await expect(page.getByRole("heading", { name: /Is it vegetarian\?/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Vegan, vegetarian, or non-veg\?/ })).toBeVisible();
     await expect(page.locator("#home")).toBeVisible();
     await expect(page.locator("#tiles .tile").first()).toBeVisible();
     await capture(page, `search-home-${viewport.name}.png`);
@@ -118,7 +118,7 @@ test("shows restaurant-chain scope and filters entries by region", async ({ page
 
   await page.locator("#catchips").getByRole("button", { name: /Restaurant chains/ }).click();
 
-  const regionFilter = page.getByRole("combobox", { name: "Filter restaurant chains by region" });
+  const regionFilter = page.locator("#regionfilter");
   const chains = page.locator("#ilist .card");
   await expect(regionFilterRow).toBeVisible();
   await expect(regionFilterRow).not.toContainText("Any verdict");
