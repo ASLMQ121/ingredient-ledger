@@ -2175,12 +2175,14 @@ function setEatStatus(html){ $("#eatstatus").innerHTML = html || ""; }
 
 /* ---------- fast fallbacks that do not depend on Overpass ---------- */
 const VEG_NAME_RX = /\b(vegan|vegetarian|veggie|veg|pure veg|plant[- ]based|udupi|bhavan|bhawan|sattvic|saatvik|satvik|jain|bhojanalaya|thali|annapoorna|annapurna|shakahari|govinda'?s|loving hut|falafel)\b/i;
+const VEG_FRIENDLY_NAME = /\b(masala|curry|tandoor|tandoori|biryani|dosa|idli|chaat|thali|india|indian|punjab|punjabi|bombay|mumbai|delhi|madras|chennai|kerala|gujarat|nepal|himalaya|falafel|hummus|ethiopian|habesha|lebanese|mediterranean|salad|juice|smoothie|acai|poke bowl)\b/i;
 const VEG_FRIENDLY_CUISINE = /(^|;)\s*(indian|south_indian|north_indian|gujarati|punjabi|nepalese|sri_lankan|ethiopian|eritrean|lebanese|middle_eastern|falafel|mediterranean|israeli|vegetarian|vegan)\s*(;|$)/i;
 function classifyFallbackPlace(t){
   if((t.amenity === "place_of_worship" || t.building === "gurdwara") && ((t.religion || "") === "sikh" || /gurdwara|gurudwara|gurdwara sahib|iskcon|hare krishna|govinda/i.test(t.name || ""))) return "langar";
   const c = classifyPlace(t); if(c) return c;
   if(VEG_NAME_RX.test(t.name || "")) return "veg_name";
   if(VEG_FRIENDLY_CUISINE.test(t.cuisine || "")) return "veg_friendly";
+  if(!t.cuisine && VEG_FRIENDLY_NAME.test(t.name || "")) return "veg_friendly";
   return null;
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -2207,13 +2209,20 @@ function fromPhoton(f){
 /* Nominatim's usage policy asks for at most one request per second, so these run one after another. */
 async function nominatimPOIs(center, R, kinds, seq, onBatch){
   const b = boxFor(center, R), vb = [b.minLon, b.maxLat, b.maxLon, b.minLat].join(",");
-  for(const kind of kinds){
-    if(seq !== EAT.seq) return;
-    try{
-      const j = await getJSON("https://nominatim.openstreetmap.org/search?format=jsonv2&bounded=1&extratags=1&addressdetails=1&limit=40&viewbox=" + vb + "&amenity=" + encodeURIComponent(kind), null, {timeout:10000});
-      if(seq === EAT.seq && Array.isArray(j)) onBatch(j.map(fromNominatim));
-    }catch(_){}
-    await sleep(1100);
+  for(const item of kinds){
+    const [kind, pages] = Array.isArray(item) ? item : [item, 1];
+    const seen = [];
+    for(let pg = 0; pg < pages; pg++){
+      if(seq !== EAT.seq) return;
+      let got = 0;
+      try{
+        const j = await getJSON("https://nominatim.openstreetmap.org/search?format=jsonv2&bounded=1&extratags=1&addressdetails=1&limit=40&viewbox=" + vb + "&amenity=" + encodeURIComponent(kind) +
+          (seen.length ? "&exclude_place_ids=" + seen.slice(-400).join(",") : ""), null, {timeout:10000});
+        if(seq === EAT.seq && Array.isArray(j)){ got = j.length; j.forEach(x => x.place_id && seen.push(x.place_id)); onBatch(j.map(fromNominatim)); }
+      }catch(_){}
+      await sleep(1100);
+      if(got < 40) break;      /* no more pages */
+    }
   }
 }
 async function photonPOIs(center, R, words, osmTag, seq, onBatch){
@@ -2257,6 +2266,9 @@ async function eatSearch(center, label, alts){
       if(shop && cat === "s_super" && (t.shop || "") === "convenience" && !/(yes|only)/.test(t["diet:vegan"] || t["diet:vegetarian"] || "")) return;
       const dist = haversine(center, {lat: el.lat, lon: el.lon}); if(dist > R * 1.5) return;
       const id = el.type + el.id;
+      const nn = norm(t.name).replace(/[^a-z0-9]/g, "");
+      const twin = EAT.places.find(q => q.id !== id && norm(q.t.name).replace(/[^a-z0-9]/g, "") === nn && haversine(q, {lat: el.lat, lon: el.lon}) < 150);
+      if(twin && !byId.has(id)){ if(el.src === "Overpass"){ twin.t = Object.assign({}, twin.t, t); twin.cat = cat; twin.open = openNow(twin.t.opening_hours); changed = true; } return; }
       const prev = byId.get(id);
       if(prev){ if(el.src === "Overpass"){ prev.t = Object.assign({}, prev.t, t); prev.cat = cat; prev.open = openNow(prev.t.opening_hours); changed = true; } return; }
       const p = {id, osmType: String(el.type).toUpperCase(), osmId: el.id, t, cat, lat: el.lat, lon: el.lon, dist, open: openNow(t.opening_hours), src: el.src};
@@ -2285,11 +2297,11 @@ async function eatSearch(center, label, alts){
 
   /* 2. fast sources that keep working when Overpass is down */
   const fast = Promise.all(shop ? [
-    nominatimPOIs(center, R, ["supermarket", "greengrocer", "health food", "organic", "marketplace", "grocery"], seq, add),
+    nominatimPOIs(center, R, [["supermarket", 3], "greengrocer", "health food", "organic", "marketplace", ["grocery", 2]], seq, add),
     photonPOIs(center, R, ["indian", "organic", "health", "bazaar", "market", "asian"], "shop", seq, add)
   ] : [
-    nominatimPOIs(center, R, ["restaurant", "cafe", "fast food"], seq, add),
-    photonPOIs(center, R, ["vegan", "vegetarian", "veg", "veggie", "plant based", "falafel", "india", "udupi", "bhavan", "gurdwara", "gurudwara", "iskcon", "govinda"], "amenity", seq, add)
+    nominatimPOIs(center, R, [["restaurant", 5], ["cafe", 2], ["fast food", 2], ["food court", 1]], seq, add),
+    photonPOIs(center, R, ["vegan", "vegetarian", "veg", "veggie", "plant based", "falafel", "india", "indian", "masala", "curry", "dosa", "udupi", "bhavan", "gurdwara", "gurudwara", "iskcon", "govinda", "salad", "juice"], "amenity", seq, add)
   ]).then(() => { src.fast = "done"; });
 
   if(shop && EAT.productCode) nearbySightings(EAT.productCode, seq);   /* independent of the store searches */
