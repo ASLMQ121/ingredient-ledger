@@ -185,3 +185,25 @@ test("Restaurant search still returns places when Overpass is unavailable", asyn
   await page.locator("#eatgo").click();
   await expect(page.locator("#eatlist")).toContainText("Green Bowl", { timeout: 15000 });
 });
+
+test("Place search works worldwide: village suggestions and a city picker for states", async ({ page }) => {
+  await page.route("**/*", route => {
+    const url = new URL(route.request().url());
+    if (url.origin === appOrigin) return route.continue();
+    const json = body => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+    if (url.hostname.includes("open-meteo")) return json({ results: [{ name: "Kodaikanal", latitude: 10.23, longitude: 77.48, admin2: "Dindigul", admin1: "Tamil Nadu", country: "India", feature_code: "PPL" }] });
+    if (url.hostname === "nominatim.openstreetmap.org" && url.pathname.includes("reverse")) return json({ extratags: { wikidata: "Q668" } });
+    if (url.hostname === "nominatim.openstreetmap.org" && url.searchParams.get("q")) return json([{ lat: "10.3", lon: "76.3", display_name: "Kerala, India", addresstype: "state", extratags: { wikidata: "Q1186" }, boundingbox: ["8.1", "12.8", "74.8", "77.5"] }]);
+    if (url.hostname === "query.wikidata.org") return json({ results: { bindings: [
+      { cLabel: { value: "Delhi" }, coord: { value: "Point(77.2 28.6)" }, pop: { value: "3" } },
+      { cLabel: { value: "Kochi" }, coord: { value: "Point(76.27 9.93)" }, pop: { value: "2" } }
+    ] } });
+    return route.abort();
+  });
+  await page.goto("/#eat");
+  await page.locator("#place").fill("Kodai");
+  await expect(page.locator("#placesug option")).toHaveCount(1);
+  await page.locator("#place").fill("Kerala");
+  await page.locator("#eatgo").click();
+  await expect(page.locator("[data-bigcity]")).toHaveText(["Kochi"]);
+});

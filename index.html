@@ -606,13 +606,13 @@ footer p{margin:0 0 6px;font-size:12.5px;color:var(--faint);line-height:1.6;max-
       </div>
       <div class="eatgrid">
         <div class="grow">
-          <label class="lbl2" for="place">City, area or address — anywhere in the world</label>
-          <input id="place" class="field-in" placeholder="e.g. Bengaluru, Shibuya Tokyo, Brooklyn, Berlin Kreuzberg" autocomplete="off">
+          <label class="lbl2" for="place">Country, state, city, town, village or address, anywhere in the world</label>
+          <input id="place" class="field-in" list="placesug" placeholder="Any country, state, city, town or village, e.g. Bengaluru, Kerala, Shibuya Tokyo" autocomplete="off"><datalist id="placesug"></datalist>
         </div>
         <div>
           <label class="lbl2" for="radius">Within</label>
           <select id="radius" class="field-in">
-            <option value="1500">1.5 km</option><option value="3000" selected>3 km</option><option value="6000">6 km</option><option value="12000">12 km</option><option value="25000">25 km</option>
+            <option value="1500">1.5 km</option><option value="3000" selected>3 km</option><option value="6000">6 km</option><option value="12000">12 km</option><option value="25000">25 km</option><option value="50000">50 km</option>
           </select>
         </div>
         <div style="display:flex;gap:8px">
@@ -2163,14 +2163,82 @@ async function overpass(query, timeoutMs){
   }catch(_){ throw new Error("The detailed OpenStreetMap servers (Overpass) are busy or unreachable."); }
   finally{ clearTimeout(timer); }
 }
+const BIG_AREA = new Set(["country","state","region","province","state_district","county","territory","archipelago","continent"]);
 async function geocode(q){
   try{
-    const j = await getJSON("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=0&q=" + encodeURIComponent(q), null, {timeout:12000});
-    if(j && j.length) return j.map(x => ({lat:+x.lat, lon:+x.lon, label:x.display_name}));
+    const j = await getJSON("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=0&extratags=1&q=" + encodeURIComponent(q), null, {timeout:12000});
+    if(j && j.length) return j.map(x => ({lat:+x.lat, lon:+x.lon, label:x.display_name, type:x.addresstype || x.type, qid:(x.extratags || {}).wikidata || "", bbox:x.boundingbox}));
   }catch(_){}
-  const j = await getJSON("https://geocoding-api.open-meteo.com/v1/search?count=5&language=en&format=json&name=" + encodeURIComponent(q), null, {timeout:12000});
-  return (j.results || []).map(x => ({lat:x.latitude, lon:x.longitude, label:[x.name, x.admin1, x.country].filter(Boolean).join(", ")}));
+  const j = await getJSON("https://geocoding-api.open-meteo.com/v1/search?count=6&language=en&format=json&name=" + encodeURIComponent(q), null, {timeout:12000});
+  return (j.results || []).map(x => ({lat:x.latitude, lon:x.longitude, label:[x.name, x.admin1, x.country].filter(Boolean).join(", "), type:/^PCL/.test(x.feature_code || "") ? "country" : (x.feature_code === "ADM1" ? "state" : "place")}));
 }
+/* biggest towns inside a country or state, from Wikidata (free, no key); cached per country */
+const CITY_CLASSES = "wd:Q515 wd:Q1549591 wd:Q3957 wd:Q200250 wd:Q1637706 wd:Q5119 wd:Q7930989 wd:Q15284 wd:Q1093829 wd:Q532";
+async function countryCities(qid){
+  const ck = "il-cities-" + qid;
+  try{ const c = JSON.parse(localStorage.getItem(ck) || "null"); if(c && c.t > Date.now() - 30*864e5) return c.list; }catch(_){}
+  const sparql = 'SELECT DISTINCT ?c ?cLabel ?pop ?coord WHERE { VALUES ?t { ' + CITY_CLASSES + ' } ?c wdt:P17 wd:' + qid + ' ; wdt:P31 ?t ; wdt:P1082 ?pop ; wdt:P625 ?coord . SERVICE wikibase:label { bd:serviceParam wikibase:language "en,mul". } } ORDER BY DESC(?pop) LIMIT 800';
+  const j = await getJSON("https://query.wikidata.org/sparql?format=json&query=" + encodeURIComponent(sparql), null, {timeout:30000});
+  const seen = new Set(), list = [];
+  for(const b of (j.results || {}).bindings || []){
+    const m = /Point\(([-\d.]+) ([-\d.]+)\)/.exec(b.coord.value); const name = b.cLabel.value.replace(/ (Municipality|Municipal Corporation)$/,"");
+    if(!m || seen.has(name) || /^Q\d+$/.test(name)) continue; seen.add(name);
+    list.push({name, lat:+m[2], lon:+m[1]});
+  }
+  try{ localStorage.setItem(ck, JSON.stringify({t:Date.now(), list})); }catch(_){}
+  return list;
+}
+async function citiesIn(g){
+  let cq = g.type === "country" ? g.qid : "";
+  if(!cq){
+    const d = await getJSON("https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=3&extratags=1&lat=" + g.lat + "&lon=" + g.lon, null, {timeout:12000});
+    cq = (d.extratags || {}).wikidata || "";
+  }
+  if(!cq) return [];
+  let list = await countryCities(cq);
+  if(g.type !== "country" && g.bbox){
+    const [s,n,w,e] = g.bbox.map(Number);
+    list = list.filter(c => c.lat >= s && c.lat <= n && c.lon >= w && c.lon <= e);
+  }
+  return list.slice(0, 18);
+}
+async function pickCityIn(g){
+  const area = g.label.split(",")[0], kind = esc(String(g.type).replace("_"," "));
+  EAT.big = g; EAT.bigList = [];
+  const head = '<b>' + esc(area) + '</b> is a whole ' + kind + '. Pick a town or city in it, or type any town or village above (suggestions appear as you type).';
+  const tail = '<div style="margin-top:10px"><button class="trybtn" id="bigcentre">Search around its centre anyway</button></div>';
+  setEatStatus('<div class="msg">' + head + '<div class="note-sm" style="margin-top:8px"><span class="spinner"></span> Loading its main towns and cities from Wikidata…</div>' + tail + '</div>');
+  let list = [];
+  try{ list = await citiesIn(g); }catch(_){}
+  if(EAT.big !== g) return;
+  EAT.bigList = list;
+  const chips = list.map((c,i) => '<button class="trybtn" data-bigcity="' + i + '">' + esc(c.name) + '</button>').join("");
+  setEatStatus('<div class="msg">' + head + (chips ? '<div class="chips" style="margin-top:10px">' + chips + '</div>' : '<div class="note-sm" style="margin-top:8px">Couldn\'t load the town list right now.</div>') + tail + '</div>');
+}
+/* place suggestions while typing: cities, towns, villages worldwide (Open-Meteo / GeoNames, then Photon) */
+let PLACE_SUG = [], photonOK = true;
+async function suggestPlaces(q){
+  const dl = $("#placesug"); if(!dl) return;
+  if(q.length < 2){ dl.innerHTML = ""; PLACE_SUG = []; return; }
+  let list = [];
+  const base = q.split(",")[0].trim();
+  try{
+    const j = await getJSON("https://geocoding-api.open-meteo.com/v1/search?count=10&language=en&format=json&name=" + encodeURIComponent(base), null, {timeout:8000});
+    const rest = q.split(",").slice(1).join(" ").trim().toLowerCase();
+    list = (j.results || []).map(x => ({lat:x.latitude, lon:x.longitude, label:[x.name, x.admin2 !== x.name ? x.admin2 : "", x.admin1 !== x.name ? x.admin1 : "", x.country].filter(Boolean).join(", "), type:/^PCL/.test(x.feature_code || "") ? "country" : (x.feature_code === "ADM1" ? "state" : "place"), bbox:null}))
+      .filter(x => !rest || x.label.toLowerCase().includes(rest));
+  }catch(_){}
+  if(list.length < 3 && photonOK){
+    try{
+      const j = await getJSON("https://photon.komoot.io/api/?limit=8&lang=en&q=" + encodeURIComponent(q), null, {timeout:6000});
+      list = list.concat((j.features || []).filter(f => (f.properties || {}).osm_key === "place" || (f.properties || {}).osm_value === "administrative").map(f => { const p = f.properties; return {lat:f.geometry.coordinates[1], lon:f.geometry.coordinates[0], label:[p.name, p.county !== p.name ? p.county : "", p.state !== p.name ? p.state : "", p.country !== p.name ? p.country : ""].filter(Boolean).join(", "), type:p.type || "place"}; }));
+    }catch(_){ photonOK = false; }
+  }
+  if($("#place").value.trim() !== q) return;
+  const seen = new Set(); PLACE_SUG = list.filter(x => !seen.has(x.label) && seen.add(x.label));
+  dl.innerHTML = PLACE_SUG.map(x => '<option value="' + esc(x.label) + '"></option>').join("");
+}
+const suggestPlacesDeb = debounce(suggestPlaces, 300);
 function setEatStatus(html){ $("#eatstatus").innerHTML = html || ""; }
 
 /* ---------- fast fallbacks that do not depend on Overpass ---------- */
@@ -2342,8 +2410,13 @@ async function eatFromText(){
   if(!q){ setEatStatus('<div class="msg">Type a city, area or address first — or press “Near me”.</div>'); return; }
   setEatStatus('<div class="msg"><span class="spinner"></span> Finding “' + esc(q) + '” on the map…</div>');
   try{
-    const g = await geocode(q);
-    if(!g.length){ setEatStatus('<div class="msg">Couldn\'t find “' + esc(q) + '”. Try adding the country, e.g. “Springfield, Illinois”.</div>'); return; }
+    const picked = PLACE_SUG.find(x => x.label === q);
+    let g = picked ? [picked] : await geocode(q);
+    if(!g.length){ setEatStatus('<div class="msg">Couldn\'t find “' + esc(q) + '”. Try adding the state or country, e.g. “Springfield, Illinois”.</div>'); return; }
+    if(BIG_AREA.has(g[0].type)){
+      if(picked && !g[0].bbox){ const full = await geocode(q).catch(() => []); if(full[0] && BIG_AREA.has(full[0].type)) g = full; }
+      return pickCityIn(g[0]);
+    }
     await eatSearch({lat:g[0].lat, lon:g[0].lon}, g[0].label, g);
   }catch(err){ setEatStatus('<div class="msg err"><b>Place search failed.</b> ' + esc(err.message) + ' Check your connection and try again.</div>'); }
 }
@@ -2564,6 +2637,7 @@ $("#ilist").addEventListener("click", e => { if(e.target.id === "more"){ state.l
 /* restaurants */
 $("#eatgo").addEventListener("click", eatFromText);
 $("#place").addEventListener("keydown", e => { if(e.key === "Enter") eatFromText(); });
+$("#place").addEventListener("input", e => { const v = e.target.value.trim(); if(PLACE_SUG.some(x => x.label === v)) eatFromText(); else suggestPlacesDeb(v); });
 $("#nearme").addEventListener("click", eatNearMe);
 $("#radius").addEventListener("change", () => { if(EAT.center) eatSearch(EAT.center, EAT.label, EAT.alts); });
 $$("[data-city]").forEach(b => b.addEventListener("click", () => { $("#place").value = b.dataset.city; eatFromText(); }));
@@ -2572,6 +2646,8 @@ $("#eatsort").addEventListener("click", e => { const b = e.target.closest(".chip
 $("#eatlist").addEventListener("click", e => { if(e.target.id === "eatmore"){ EAT.limit += 30; renderEat(); return; } const pl = e.target.closest(".place"); if(pl && EAT.markers[pl.dataset.pid] && !e.target.closest("a,summary")){ const m = EAT.markers[pl.dataset.pid]; EAT.map.setView(m.getLatLng(), Math.max(EAT.map.getZoom(), 15)); m.openTooltip(); } });
 $("#eatstatus").addEventListener("click", e => {
   if(e.target.id === "eatretry") eatSearch(EAT.center, EAT.label, EAT.alts);
+  const bc = e.target.closest("[data-bigcity]"); if(bc && EAT.bigList){ const c = EAT.bigList[+bc.dataset.bigcity]; const lab = c.name + ", " + EAT.big.label; $("#place").value = c.name; eatSearch({lat:c.lat, lon:c.lon}, lab, null); return; }
+  if(e.target.id === "bigcentre" && EAT.big){ eatSearch({lat:EAT.big.lat, lon:EAT.big.lon}, EAT.big.label, null); return; }
   const a = e.target.closest("[data-alt]"); if(a && EAT.alts){ const g = EAT.alts[+a.dataset.alt]; const rest = [g, ...EAT.alts.filter(x => x !== g)]; $("#place").value = g.label.split(",")[0]; eatSearch({lat:g.lat, lon:g.lon}, g.label, rest); }
 });
 
