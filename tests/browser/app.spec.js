@@ -132,25 +132,33 @@ test("shows restaurant scope, sources, and region-specific entries", async ({ pa
   await expect(restaurants.filter({ hasText: "Domino's India" })).toBeVisible();
   await expect(restaurants.filter({ hasText: "Taco Bell" })).toHaveCount(0);
 
-  await regionFilter.selectOption("Brampton, Ontario, Canada");
+  const regionOptions = await regionFilter.locator("option").allTextContents();
+  expect(regionOptions).toContain("Canada");
+  expect(regionOptions).not.toContain("Brampton, Ontario, Canada");
+  expect(regionOptions).not.toContain("Mississauga, Ontario, Canada");
+  await regionFilter.selectOption("Canada");
+  await expect(regionFilter).toHaveValue("Canada");
   const bramptonRestaurant = restaurants.filter({ hasText: "Punjabi Chaap Corner — Airport & Sandalwood" });
+  const mississaugaRestaurant = restaurants.filter({ hasText: "Punjabi Chaap Corner — Bramalea & Drew" });
   await expect(bramptonRestaurant).toBeVisible();
+  await expect(mississaugaRestaurant).toBeVisible();
   await expect(bramptonRestaurant.locator(".badges")).toContainText("Check source");
+  await expect(bramptonRestaurant.locator(".badges")).toContainText("Brampton, Ontario, Canada");
+  await expect(mississaugaRestaurant.locator(".badges")).toContainText("Mississauga, Ontario, Canada");
+  await expect(bramptonRestaurant.locator(".card__id .aka")).toContainText("2945 Sandalwood Pkwy E · Brampton, Ontario");
+  await expect(bramptonRestaurant.locator(".field").filter({ hasText: "How it's derived" }).locator("dd")).toContainText("2945 Sandalwood Pkwy E, Brampton, Ontario, Canada, L6R 3J6");
+  await expect(mississaugaRestaurant.locator(".card__id .aka")).toContainText("7305 Bramalea Rd, Unit 6 · Mississauga, Ontario");
+  await expect(mississaugaRestaurant.locator(".field").filter({ hasText: "How it's derived" }).locator("dd")).toContainText("7305 Bramalea Rd, Unit #6, Mississauga, Ontario, Canada, L5S 1W4");
   await expect(bramptonRestaurant.locator(".evidence-note")).toContainText("Needs verification");
   await expect(bramptonRestaurant.locator(".evidence-note")).toContainText("business advertises its chaap as “100% vegetarian” and “zero meat”");
   await expect(bramptonRestaurant.locator(".evidence-note")).toContainText("not independent certification");
   await expect(bramptonRestaurant.locator(".evidence-note")).toContainText("do not clarify egg use across the full menu");
   await expect(bramptonRestaurant.locator(".evidence-note")).toContainText("vegan status is not established");
+  await expect(bramptonRestaurant.locator(".evidence-note")).not.toContainText("Canada guidance");
   await expect(bramptonRestaurant.getByRole("link", { name: "Official chaap claim ↗" })).toHaveAttribute("href", "https://punjabichaapcorner.ca/");
   await expect(bramptonRestaurant.getByRole("link", { name: "Official locations list ↗" })).toHaveAttribute("href", "https://punjabichaapcorner.ca/locations/");
-  await expect(restaurants.filter({ hasText: "Punjabi Chaap Corner — Bramalea & Drew" })).toHaveCount(0);
-
-  await regionFilter.selectOption("Mississauga, Ontario, Canada");
-  const mississaugaRestaurant = restaurants.filter({ hasText: "Punjabi Chaap Corner — Bramalea & Drew" });
-  await expect(mississaugaRestaurant).toBeVisible();
-  await expect(mississaugaRestaurant.locator(".badges")).toContainText("Mississauga, Ontario, Canada");
   await expect(mississaugaRestaurant.locator(".evidence-note")).toContainText("not independent certification");
-  await expect(restaurants.filter({ hasText: "Punjabi Chaap Corner — Airport & Sandalwood" })).toHaveCount(0);
+  await expect(mississaugaRestaurant.locator(".evidence-note")).toContainText("do not clarify egg use across the full menu");
 
   await vaccines.click();
   await expect(regionFilterRow).toBeHidden();

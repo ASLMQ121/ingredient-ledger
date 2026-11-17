@@ -844,8 +844,8 @@ const PUNJABI_CHAAP_SOURCES = [
   {label:"Official locations list",url:"https://punjabichaapcorner.ca/locations/"}
 ];
 const PUNJABI_CHAAP_LOCATIONS = [
-  {name:"Punjabi Chaap Corner — Airport & Sandalwood",aka:"2945 Sandalwood Pkwy E · Brampton, Ontario",region:"Brampton, Ontario, Canada",address:"2945 Sandalwood Pkwy E, Brampton, Ontario, Canada, L6R 3J6"},
-  {name:"Punjabi Chaap Corner — Bramalea & Drew",aka:"7305 Bramalea Rd, Unit 6 · Mississauga, Ontario",region:"Mississauga, Ontario, Canada",address:"7305 Bramalea Rd, Unit #6, Mississauga, Ontario, Canada, L5S 1W4"}
+  {name:"Punjabi Chaap Corner — Airport & Sandalwood",aka:"2945 Sandalwood Pkwy E · Brampton, Ontario",region:"Brampton, Ontario, Canada",market:"Canada",address:"2945 Sandalwood Pkwy E, Brampton, Ontario, Canada, L6R 3J6"},
+  {name:"Punjabi Chaap Corner — Bramalea & Drew",aka:"7305 Bramalea Rd, Unit 6 · Mississauga, Ontario",region:"Mississauga, Ontario, Canada",market:"Canada",address:"7305 Bramalea Rd, Unit #6, Mississauga, Ontario, Canada, L5S 1W4"}
 ];
 DATA.push(...PUNJABI_CHAAP_LOCATIONS.map(location => ({
   n:location.name,
@@ -857,6 +857,7 @@ DATA.push(...PUNJABI_CHAAP_LOCATIONS.map(location => ({
   t:"The claim is about chaap, not every menu item. Ask about eggs and preparation at this outlet; vegan status is not established.",
   kw:["Punjabi Chaap Corner",location.name,location.region,"Canada","vegetarian restaurant"],
   region:location.region,
+  market:location.market,
   sourceStatus:"needs-verification",
   sources:PUNJABI_CHAAP_SOURCES,
   h:"The official locations page lists this outlet at " + location.address + "."
@@ -1882,7 +1883,7 @@ async function readPage(){
 function buildIndexChips(){
   const cnt = {}; DATA.forEach(e => cnt[e.c] = (cnt[e.c]||0) + 1);
   $("#catchips").innerHTML = CATS.map(([k,l]) => '<button class="chip" data-cat="' + k + '" aria-pressed="' + (k === state.cat) + '">' + l + '<small>' + (k === "all" ? DATA.length : cnt[k]||0) + '</small></button>').join("");
-  const regions = [...new Set(DATA.filter(e => e.c === "rest").map(e => e.region))];
+  const regions = [...new Set(DATA.filter(e => e.c === "rest").map(e => e.market || e.region))];
   $("#regionfilter").innerHTML = '<option value="all">All regions</option>' + regions.map(region => '<option value="' + esc(region) + '">' + esc(region) + '</option>').join("");
   $("#regionfilter").value = state.region || "all";
   const kc = {}; DATA.forEach(e => kc[e.k] = (kc[e.k]||0) + 1);
@@ -1900,7 +1901,7 @@ function renderIndex(){
   }
   const kf = state.kf === "alt" ? "all" : state.kf;
   let rows = iq ? searchLocal(iq, {cat:state.cat, k:kf}) : DATA.filter(e => (state.cat === "all" || e.c === state.cat) && (kf === "all" || e.k === kf));
-  if(isRestaurantCategory && state.region !== "all") rows = rows.filter(e => e.region === state.region);
+  if(isRestaurantCategory && state.region !== "all") rows = rows.filter(e => (e.market || e.region) === state.region);
   if(state.kf === "alt") rows = rows.filter(e => e.alt);
   const fitPriority = {ok:0, maybe:1, strict:1, no:2};
   rows = rows.map((e, i) => ({e, i}))
