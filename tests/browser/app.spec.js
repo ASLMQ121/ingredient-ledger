@@ -105,7 +105,7 @@ test("filters the Reference Index and handles denied camera access without hardw
   await expect(page.locator("#camstatus")).toContainText("Camera permission was refused");
 });
 
-test("shows restaurant-chain scope and filters entries by region", async ({ page }) => {
+test("shows restaurant scope, sources, and region-specific entries", async ({ page }) => {
   await page.goto("/#search");
   await page.getByRole("tab", { name: "Index" }).click();
   const regionFilterRow = page.locator("#regionfilterrow");
@@ -116,21 +116,29 @@ test("shows restaurant-chain scope and filters entries by region", async ({ page
   await expect(regionFilterRow).toBeHidden();
   await expect(verdictFilters).toBeVisible();
 
-  await page.locator("#catchips").getByRole("button", { name: /Restaurant chains/ }).click();
+  await page.locator("#catchips").getByRole("button", { name: /^Restaurants/ }).click();
 
   const regionFilter = page.locator("#regionfilter");
-  const chains = page.locator("#ilist .card");
+  const restaurants = page.locator("#ilist .card");
   await expect(regionFilterRow).toBeVisible();
   await expect(regionFilterRow).not.toContainText("Any verdict");
   await expect(regionFilter).toHaveValue("all");
-  const indiaChain = chains.filter({ hasText: "McDonald's India (veg menu)" });
+  const indiaChain = restaurants.filter({ hasText: "McDonald's India (veg menu)" });
   await expect(indiaChain.locator(".badges")).toContainText("India");
   await expect(indiaChain).toContainText("menus and preparation can vary by location");
-  await expect(chains.filter({ hasText: "Taco Bell" })).toBeVisible();
+  await expect(restaurants.filter({ hasText: "Taco Bell" })).toBeVisible();
 
   await regionFilter.selectOption("India");
-  await expect(chains.filter({ hasText: "Domino's India" })).toBeVisible();
-  await expect(chains.filter({ hasText: "Taco Bell" })).toHaveCount(0);
+  await expect(restaurants.filter({ hasText: "Domino's India" })).toBeVisible();
+  await expect(restaurants.filter({ hasText: "Taco Bell" })).toHaveCount(0);
+
+  await regionFilter.selectOption("Brampton, Ontario, Canada");
+  const bramptonRestaurant = restaurants.filter({ hasText: "Punjabi Chaap Corner — Airport & Sandalwood" });
+  await expect(bramptonRestaurant).toBeVisible();
+  await expect(bramptonRestaurant.locator(".badges")).toContainText("Check source");
+  await expect(bramptonRestaurant.locator(".evidence-note")).toContainText("Needs verification");
+  await expect(bramptonRestaurant.getByRole("link", { name: "Official vegetarian claim ↗" })).toHaveAttribute("href", "https://punjabichaapcorner.ca/");
+  await expect(bramptonRestaurant.getByRole("link", { name: "Official Brampton location ↗" })).toHaveAttribute("href", "https://punjabichaapcorner.ca/locations/");
 
   await vaccines.click();
   await expect(regionFilterRow).toBeHidden();

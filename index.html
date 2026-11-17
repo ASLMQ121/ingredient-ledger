@@ -673,12 +673,12 @@ footer p{margin:0 0 6px;font-size:12.5px;color:var(--faint);line-height:1.6;max-
     <div class="pagehead">
       <p class="kicker">The reference index</p>
       <h2>Every entry, with its source and process.</h2>
-      <p id="indexsub">Browse additives, ingredients, cheeses, dishes, drinks, medicines, vaccines and hidden label terms. Restaurant-chain guidance is market-specific; use the region filter and verify your local menu, since ingredients and preparation vary by location.</p>
+      <p id="indexsub">Browse additives, ingredients, cheeses, dishes, drinks, medicines, vaccines, hidden label terms and restaurants. Restaurant references are region-specific; use the region filter and verify your local menu, since ingredients and preparation vary by location.</p>
     </div>
     <div class="filters">
       <div class="scroll-chips" id="catchips" role="group" aria-label="Filter by category"></div>
       <div class="filterrow" id="regionfilterrow" hidden>
-        <label class="region-filter" for="regionfilter"><span>Chain region</span><select id="regionfilter" class="field-in miniinput" aria-label="Filter restaurant chains by region"></select></label>
+        <label class="region-filter" for="regionfilter"><span>Restaurant region</span><select id="regionfilter" class="field-in miniinput" aria-label="Filter restaurants by region"></select></label>
       </div>
       <div class="filterrow">
         <div class="scroll-chips" id="kchips" role="group" aria-label="Filter by verdict"></div>
@@ -839,6 +839,23 @@ const DATA = [{"n":"E120 Carmine","aka":"cochineal, carminic acid, natural red 4
 
 /* ====================================================================== helpers */
 const $ = s => document.querySelector(s);
+DATA.push({
+  n:"Punjabi Chaap Corner — Airport & Sandalwood",
+  aka:"2945 Sandalwood Pkwy E · Brampton, Ontario",
+  c:"rest",
+  s:"The restaurant's official website lists this address in Brampton and describes the brand's cuisine as 100% vegetarian, but does not clarify egg use or this location's preparation practices.",
+  v:"maybe",
+  g:"maybe",
+  t:"Needs checking: ask this location whether eggs are served and how food is prepared.",
+  kw:["Punjabi Chaap Corner","Airport and Sandalwood","Brampton","Ontario","Canada","vegetarian restaurant"],
+  region:"Brampton, Ontario, Canada",
+  sourceStatus:"needs-verification",
+  sources:[
+    {label:"Official vegetarian claim",url:"https://punjabichaapcorner.ca/"},
+    {label:"Official Brampton location",url:"https://punjabichaapcorner.ca/locations/"}
+  ],
+  h:"Listed by Punjabi Chaap Corner at 2945 Sandalwood Pkwy E, Brampton, Ontario."
+});
 const $$ = s => [...document.querySelectorAll(s)];
 const searchQuery = $("#q"), fullSearchPlaceholder = searchQuery.placeholder;
 const compactSearch = window.matchMedia("(max-width:480px)");
@@ -917,15 +934,18 @@ function evidenceText(e){
 }
 function evidenceHTML(e){
   if(e.live) return '<p class="evidence-note"><b>Added live, not yet reviewed.</b> Classified from the Open Food Facts ingredient database (community-maintained) with this site\'s rules (egg and cheese count as non-vegetarian). Check the current label.' + (e.wd ? ' <a target="_blank" rel="noopener" href="https://www.wikidata.org/wiki/' + esc(e.wd) + '">Wikidata ↗</a>' : '') + ' <a target="_blank" rel="noopener" href="https://en.wikipedia.org/w/index.php?search=' + encodeURIComponent(e.n) + '">How it\'s made (Wikipedia) ↗</a></p>';
+  const sourceLinks = (e.sources || []).map(source => '<a target="_blank" rel="noopener" href="' + esc(source.url) + '">' + esc(source.label) + ' ↗</a>').join(" · ");
+  if(e.c === "rest" && e.sourceStatus === "needs-verification") return '<p class="evidence-note"><b>Needs verification.</b> The official site identifies this Brampton outlet and describes the brand as 100% vegetarian, but does not clarify egg use or this location\'s preparation practices. Ask before ordering. ' + sourceLinks + '</p>';
   return '<p class="evidence-note"><b>Guidance, not certification.</b> Based on Ingredient Ledger’s curated reference, not maker-specific verification; check the current label.' +
     (e.v === "maybe" || e.g === "maybe" ? ' <b>Uncertain source:</b> confirm this ingredient with its manufacturer.' : '') +
-    (e.c === "rest" ? ' This is <b>' + esc(e.region) + '</b> guidance; menus and preparation can vary by location. Check the current local menu.' : '') + '</p>';
+    (e.c === "rest" ? ' This is <b>' + esc(e.region) + '</b> guidance; menus and preparation can vary by location. Check the current local menu.' : '') +
+    (sourceLinks ? ' Sources: ' + sourceLinks : '') + '</p>';
 }
 
 DATA.forEach((e,i) => { e.i = i; e.k = klass(e); });
 
 /* ====================================================================== search index */
-const CATS = [["all","Everything"],["add","Additives & E-numbers"],["ing","Ingredients & dairy"],["dish","Dishes"],["rest","Restaurant chains"],["drink","Drinks"],["med","Medicines"],["vac","Vaccines"],["hidden","Hidden label terms"]];
+const CATS = [["all","Everything"],["add","Additives & E-numbers"],["ing","Ingredients & dairy"],["dish","Dishes"],["rest","Restaurants"],["drink","Drinks"],["med","Medicines"],["vac","Vaccines"],["hidden","Hidden label terms"]];
 CATS.push(["live","Added live"]);
 const CATNAME = Object.fromEntries(CATS);
 const RESTAURANT_REGIONS = {
@@ -943,7 +963,7 @@ const RESTAURANT_REGIONS = {
   "Taco Bell":"Varies by market",
   "Street food and local dhabas":"South Asia / varies"
 };
-DATA.forEach(e => { if(e.c === "rest") e.region = RESTAURANT_REGIONS[e.n] || "Varies by location"; });
+DATA.forEach(e => { if(e.c === "rest") e.region = e.region || RESTAURANT_REGIONS[e.n] || "Varies by location"; });
 function prepEntry(e){
   e._n = norm(e.n);
   e._kw = (e.kw || []).map(norm);
@@ -1183,7 +1203,7 @@ const TILES = [
   ["Vaccines", "Gelatine, egg and cell-culture ingredients in common vaccines.", "vac", ""],
   ["Drinks & alcohol", "Beer, wine, spirits, juices — fining agents and colours.", "drink", ""],
   ["Dishes by cuisine", "Indian, Thai, Italian, Japanese and more — hidden stock, fish sauce and egg.", "dish", ""],
-  ["Restaurant chains", "Vegetarian menus of global and Indian chains.", "rest", ""]
+  ["Restaurants", "Region-specific restaurant references; verify the current local menu and preparation.", "rest", ""]
 ];
 function buildTiles(){
   const cnt = {}; DATA.forEach(e => cnt[e.c] = (cnt[e.c]||0) + 1);
