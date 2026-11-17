@@ -839,23 +839,28 @@ const DATA = [{"n":"E120 Carmine","aka":"cochineal, carminic acid, natural red 4
 
 /* ====================================================================== helpers */
 const $ = s => document.querySelector(s);
-DATA.push({
-  n:"Punjabi Chaap Corner — Airport & Sandalwood",
-  aka:"2945 Sandalwood Pkwy E · Brampton, Ontario",
+const PUNJABI_CHAAP_SOURCES = [
+  {label:"Official chaap claim",url:"https://punjabichaapcorner.ca/"},
+  {label:"Official locations list",url:"https://punjabichaapcorner.ca/locations/"}
+];
+const PUNJABI_CHAAP_LOCATIONS = [
+  {name:"Punjabi Chaap Corner — Airport & Sandalwood",aka:"2945 Sandalwood Pkwy E · Brampton, Ontario",region:"Brampton, Ontario, Canada",address:"2945 Sandalwood Pkwy E, Brampton, Ontario, Canada, L6R 3J6"},
+  {name:"Punjabi Chaap Corner — Bramalea & Drew",aka:"7305 Bramalea Rd, Unit 6 · Mississauga, Ontario",region:"Mississauga, Ontario, Canada",address:"7305 Bramalea Rd, Unit #6, Mississauga, Ontario, Canada, L5S 1W4"}
+];
+DATA.push(...PUNJABI_CHAAP_LOCATIONS.map(location => ({
+  n:location.name,
+  aka:location.aka,
   c:"rest",
-  s:"The restaurant's official website lists this address in Brampton and describes the brand's cuisine as 100% vegetarian, but does not clarify egg use or this location's preparation practices.",
+  s:"The business's official site advertises its chaap as 100% vegetarian and zero meat. This is the business's claim, not independent certification; the pages do not clarify egg use across the full menu or confirm outlet-specific preparation.",
   v:"maybe",
   g:"maybe",
-  t:"Needs checking: ask this location whether eggs are served and how food is prepared.",
-  kw:["Punjabi Chaap Corner","Airport and Sandalwood","Brampton","Ontario","Canada","vegetarian restaurant"],
-  region:"Brampton, Ontario, Canada",
+  t:"The claim is about chaap, not every menu item. Ask about eggs and preparation at this outlet; vegan status is not established.",
+  kw:["Punjabi Chaap Corner",location.name,location.region,"Canada","vegetarian restaurant"],
+  region:location.region,
   sourceStatus:"needs-verification",
-  sources:[
-    {label:"Official vegetarian claim",url:"https://punjabichaapcorner.ca/"},
-    {label:"Official Brampton location",url:"https://punjabichaapcorner.ca/locations/"}
-  ],
-  h:"Listed by Punjabi Chaap Corner at 2945 Sandalwood Pkwy E, Brampton, Ontario."
-});
+  sources:PUNJABI_CHAAP_SOURCES,
+  h:"The official locations page lists this outlet at " + location.address + "."
+})));
 const $$ = s => [...document.querySelectorAll(s)];
 const searchQuery = $("#q"), fullSearchPlaceholder = searchQuery.placeholder;
 const compactSearch = window.matchMedia("(max-width:480px)");
@@ -935,7 +940,7 @@ function evidenceText(e){
 function evidenceHTML(e){
   if(e.live) return '<p class="evidence-note"><b>Added live, not yet reviewed.</b> Classified from the Open Food Facts ingredient database (community-maintained) with this site\'s rules (egg and cheese count as non-vegetarian). Check the current label.' + (e.wd ? ' <a target="_blank" rel="noopener" href="https://www.wikidata.org/wiki/' + esc(e.wd) + '">Wikidata ↗</a>' : '') + ' <a target="_blank" rel="noopener" href="https://en.wikipedia.org/w/index.php?search=' + encodeURIComponent(e.n) + '">How it\'s made (Wikipedia) ↗</a></p>';
   const sourceLinks = (e.sources || []).map(source => '<a target="_blank" rel="noopener" href="' + esc(source.url) + '">' + esc(source.label) + ' ↗</a>').join(" · ");
-  if(e.c === "rest" && e.sourceStatus === "needs-verification") return '<p class="evidence-note"><b>Needs verification.</b> The official site identifies this Brampton outlet and describes the brand as 100% vegetarian, but does not clarify egg use or this location\'s preparation practices. Ask before ordering. ' + sourceLinks + '</p>';
+  if(e.c === "rest" && e.sourceStatus === "needs-verification") return '<p class="evidence-note"><b>Needs verification.</b> The business advertises its chaap as “100% vegetarian” and “zero meat”; this is not independent certification. The pages do not clarify egg use across the full menu or outlet-specific preparation. Ask before ordering; vegan status is not established. ' + sourceLinks + '</p>';
   return '<p class="evidence-note"><b>Guidance, not certification.</b> Based on Ingredient Ledger’s curated reference, not maker-specific verification; check the current label.' +
     (e.v === "maybe" || e.g === "maybe" ? ' <b>Uncertain source:</b> confirm this ingredient with its manufacturer.' : '') +
     (e.c === "rest" ? ' This is <b>' + esc(e.region) + '</b> guidance; menus and preparation can vary by location. Check the current local menu.' : '') +

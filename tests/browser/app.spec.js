@@ -137,8 +137,20 @@ test("shows restaurant scope, sources, and region-specific entries", async ({ pa
   await expect(bramptonRestaurant).toBeVisible();
   await expect(bramptonRestaurant.locator(".badges")).toContainText("Check source");
   await expect(bramptonRestaurant.locator(".evidence-note")).toContainText("Needs verification");
-  await expect(bramptonRestaurant.getByRole("link", { name: "Official vegetarian claim ↗" })).toHaveAttribute("href", "https://punjabichaapcorner.ca/");
-  await expect(bramptonRestaurant.getByRole("link", { name: "Official Brampton location ↗" })).toHaveAttribute("href", "https://punjabichaapcorner.ca/locations/");
+  await expect(bramptonRestaurant.locator(".evidence-note")).toContainText("business advertises its chaap as “100% vegetarian” and “zero meat”");
+  await expect(bramptonRestaurant.locator(".evidence-note")).toContainText("not independent certification");
+  await expect(bramptonRestaurant.locator(".evidence-note")).toContainText("do not clarify egg use across the full menu");
+  await expect(bramptonRestaurant.locator(".evidence-note")).toContainText("vegan status is not established");
+  await expect(bramptonRestaurant.getByRole("link", { name: "Official chaap claim ↗" })).toHaveAttribute("href", "https://punjabichaapcorner.ca/");
+  await expect(bramptonRestaurant.getByRole("link", { name: "Official locations list ↗" })).toHaveAttribute("href", "https://punjabichaapcorner.ca/locations/");
+  await expect(restaurants.filter({ hasText: "Punjabi Chaap Corner — Bramalea & Drew" })).toHaveCount(0);
+
+  await regionFilter.selectOption("Mississauga, Ontario, Canada");
+  const mississaugaRestaurant = restaurants.filter({ hasText: "Punjabi Chaap Corner — Bramalea & Drew" });
+  await expect(mississaugaRestaurant).toBeVisible();
+  await expect(mississaugaRestaurant.locator(".badges")).toContainText("Mississauga, Ontario, Canada");
+  await expect(mississaugaRestaurant.locator(".evidence-note")).toContainText("not independent certification");
+  await expect(restaurants.filter({ hasText: "Punjabi Chaap Corner — Airport & Sandalwood" })).toHaveCount(0);
 
   await vaccines.click();
   await expect(regionFilterRow).toBeHidden();
