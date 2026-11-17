@@ -22,12 +22,14 @@ A single static page: no accounts, no tracking, no server of its own. It works o
 
 ## What it does
 
-- **One search box.** Type an ingredient, E-number, product, dish, medicine or vaccine, or a barcode. It searches the built-in index (324 curated entries with source and process) instantly, then live databases.
+- **One search box.** Type an ingredient, E-number, product, dish, medicine or vaccine, or a barcode. It searches the built-in index (330 curated entries with source and process) instantly, then live databases.
+- **The index grows.** Scroll and the next entries load automatically. Type in the index filter and, after a short pause, matching ingredients from the Open Food Facts ingredient database that aren't in the index yet are added as **"Added live"** entries. They are classified with this site's rules (egg and cheese count as non-vegetarian) and kept in your browser for next time. The curated built-in entries still work offline.
 - **Scan a barcode** with the phone camera, or from a photo.
 - **Photo of a label.** On-device text recognition reads the ingredient list, then every ingredient is colour-coded.
 - **Paste anything**, such as a label, menu or medicine leaflet, or read a web page.
 - **Your diet:** Lacto-vegetarian (dairy, no egg), Lacto-ovo vegetarian (dairy + egg), or Vegan. Every result says "Fine for you / Not for you / Check". The Reference Index puts compatible matches first while keeping all filtered matches visible.
-- **Restaurants & food places** worldwide or near you: 100% vegan, pure vegetarian, vegan options, vegetarian options, with open-now status, menu links and a cuisine-by-cuisine "what to order and what to ask" guide.
+- **Restaurants & food places** worldwide or near you: 100% vegan, pure vegetarian, vegan options, vegetarian options, places whose name says vegetarian, veg-friendly cuisines, and gurdwaras and temples serving free vegetarian langar. Each shows open-now status, menu links and a cuisine-by-cuisine "what to order and what to ask" guide. Results come from three OpenStreetMap services at once (Nominatim, Photon, and Overpass when it isn't overloaded), so local search keeps working when one is down.
+- **Find a product near you:** "Find near me" on a product lists nearby grocery stores, plus where shoppers recently saw that exact product (Open Prices), sorted by distance.
 - **Grocery & food stores:** health/organic, fresh produce and markets, Indian and world grocers, and supermarkets. "Check stock" links search the store's own website, and **"Recently seen here"** shows products shoppers have recently photographed on its shelves (Open Prices).
 - **"Where it's been seen"** for any barcode: shops where it was recently on sale, with price and date.
 - **Installable** as an app (Add to Home Screen) with light and dark themes.
@@ -45,7 +47,7 @@ A single static page: no accounts, no tracking, no server of its own. It works o
 | TheMealDB, TheCocktailDB | Recipes & cocktails, every ingredient checked | public test key |
 | Fruityvice | Whole-fruit facts | none |
 | Wikipedia | Background on what something is | none |
-| OpenStreetMap (Overpass, Nominatim), Open-Meteo geocoding | Restaurants, stores, places | none |
+| OpenStreetMap (Overpass, Nominatim, Photon by Komoot), Open-Meteo geocoding | Restaurants, stores, gurdwaras/temples, places | none |
 | Spoonacular *(optional)* | Products, diet-matched recipes, chain-restaurant dishes | your own free key, stored only in your browser |
 
 Not used: Edamam, API Ninjas, FatSecret and RapidAPI need sign-up. wger re-publishes Open Food Facts nutrition data without ingredient lists.

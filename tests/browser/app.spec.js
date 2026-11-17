@@ -138,3 +138,50 @@ test("shows restaurant-chain scope and filters entries by region", async ({ page
   await expect(page.locator("#activetag")).not.toContainText("India");
   await expect(page.locator("#ilist .card").first()).toBeVisible();
 });
+
+test("Reference Index loads more entries while scrolling", async ({ page }) => {
+  await page.goto("/#index");
+  const before = await page.locator("#ilist .card").count();
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect.poll(() => page.locator("#ilist .card").count()).toBeGreaterThan(before);
+});
+
+test("Reference Index grows from Open Food Facts while typing", async ({ page }) => {
+  await page.route("https://world.openfoodfacts.org/**", route => {
+    const url = new URL(route.request().url());
+    if (url.pathname.includes("taxonomy_suggestions")) {
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ suggestions: ["fish gelatine", "egg white powder"] }) });
+    }
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+      "en:fish-gelatine": { vegan: { en: "no" }, vegetarian: { en: "no" }, description: { en: "Gelatine made from fish skin." } },
+      "en:egg-white-powder": { vegan: { en: "no" }, vegetarian: { en: "yes" } }
+    }) });
+  });
+  await page.goto("/#index");
+  const total = Number(await page.locator("#total").textContent());
+  await page.locator("#iq").fill("gelat");
+  await expect(page.locator("#growline")).toContainText("added");
+  await expect.poll(async () => Number(await page.locator("#total").textContent())).toBeGreaterThan(total);
+  await expect(page.locator(".card", { hasText: "Fish gelatine" }).first()).toContainText("Non-veg");
+});
+
+test("Restaurant search still returns places when Overpass is unavailable", async ({ page }) => {
+  await page.route("**/*", route => {
+    const url = new URL(route.request().url());
+    if (url.origin === appOrigin) return route.continue();
+    if (url.hostname.includes("overpass")) return route.abort();
+    if (url.hostname === "nominatim.openstreetmap.org" && url.searchParams.get("q")) {
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([{ lat: "42.3314", lon: "-83.0458", display_name: "Detroit, Michigan" }]) });
+    }
+    if (url.hostname === "nominatim.openstreetmap.org") {
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(url.searchParams.get("amenity") === "restaurant"
+        ? [{ osm_type: "node", osm_id: 1, lat: "42.333", lon: "-83.046", name: "Green Bowl", category: "amenity", type: "restaurant", extratags: { "diet:vegan": "yes" } }]
+        : []) });
+    }
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ features: [] }) });
+  });
+  await page.goto("/#eat");
+  await page.locator("#place").fill("Detroit");
+  await page.locator("#eatgo").click();
+  await expect(page.locator("#eatlist")).toContainText("Green Bowl", { timeout: 15000 });
+});

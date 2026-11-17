@@ -261,6 +261,10 @@ dialog.cam::backdrop{background:rgba(0,0,0,.6)}
 .empty{text-align:center;padding:56px 20px;color:var(--dim);border:1px dashed var(--line);border-radius:12px;background:var(--surface)}
 .empty b{display:block;font-family:var(--serif);font-size:24px;color:var(--ink);margin-bottom:8px;font-weight:400}
 .morewrap{display:flex;justify-content:center;padding:18px 0 4px}
+.growline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-6px 0 14px;font-size:13px;color:var(--dim);min-height:20px}
+.growline b{color:var(--ink);font-weight:600}
+.livebadge{background:var(--clay-soft) !important;color:var(--clay) !important;border-color:var(--clay) !important}
+#indexsentinel{height:1px}
 @media (max-width:640px){.card{grid-template-columns:1fr;gap:10px;padding:16px}.card>.mark{width:32px;height:32px}.field{grid-template-columns:1fr;gap:3px}}
 
 /* ---------- buttons / inputs ---------- */
@@ -629,6 +633,7 @@ footer p{margin:0 0 6px;font-size:12.5px;color:var(--faint);line-height:1.6;max-
     </div>
 
     <div id="eatstatus" style="margin-top:20px" aria-live="polite"></div>
+    <div id="nearseen" style="margin-top:14px" hidden></div>
 
     <div id="eatresults" hidden>
       <div class="filterrow" style="margin-top:22px;justify-content:space-between">
@@ -682,6 +687,7 @@ footer p{margin:0 0 6px;font-size:12.5px;color:var(--faint);line-height:1.6;max-
       <p class="filter-hint" id="filterhint" aria-hidden="true" hidden>Scroll horizontally to see all filters</p>
     </div>
     <div class="countline"><span class="n" id="shown">0</span> of <span id="total">0</span> entries <span id="activetag"></span></div>
+    <div class="growline" id="growline" aria-live="polite"></div>
     <div class="list" id="ilist"></div>
   </div>
 </section>
@@ -905,10 +911,12 @@ const FIT_ICON = {
 const fitHTML = f => '<span class="fit ' + f + '">' + FIT_ICON[f] + FIT_TEXT[f] + ' <span style="opacity:.7;font-weight:400">(' + PROFILE_NAME[state.profile] + ')</span></span>';
 const GUIDANCE_NOTE = '<p class="verdict-note">Guidance, not certification. Check the current label.</p>';
 function evidenceText(e){
+  if(e.live) return "Added live from the Open Food Facts ingredient database (community-maintained), then classified with this site's rules; not yet reviewed by Ingredient Ledger.";
   return "Ingredient Ledger curated reference; not manufacturer-specific." +
     (e.v === "maybe" || e.g === "maybe" ? " Source can vary by maker; confirm the specific ingredient with its manufacturer." : "");
 }
 function evidenceHTML(e){
+  if(e.live) return '<p class="evidence-note"><b>Added live, not yet reviewed.</b> Classified from the Open Food Facts ingredient database (community-maintained) with this site\'s rules (egg and cheese count as non-vegetarian). Check the current label.' + (e.wd ? ' <a target="_blank" rel="noopener" href="https://www.wikidata.org/wiki/' + esc(e.wd) + '">Wikidata ↗</a>' : '') + ' <a target="_blank" rel="noopener" href="https://en.wikipedia.org/w/index.php?search=' + encodeURIComponent(e.n) + '">How it\'s made (Wikipedia) ↗</a></p>';
   return '<p class="evidence-note"><b>Guidance, not certification.</b> Based on Ingredient Ledger’s curated reference, not maker-specific verification; check the current label.' +
     (e.v === "maybe" || e.g === "maybe" ? ' <b>Uncertain source:</b> confirm this ingredient with its manufacturer.' : '') +
     (e.c === "rest" ? ' This is <b>' + esc(e.region) + '</b> guidance; menus and preparation can vary by location. Check the current local menu.' : '') + '</p>';
@@ -918,6 +926,7 @@ DATA.forEach((e,i) => { e.i = i; e.k = klass(e); });
 
 /* ====================================================================== search index */
 const CATS = [["all","Everything"],["add","Additives & E-numbers"],["ing","Ingredients & dairy"],["dish","Dishes"],["rest","Restaurant chains"],["drink","Drinks"],["med","Medicines"],["vac","Vaccines"],["hidden","Hidden label terms"]];
+CATS.push(["live","Added live"]);
 const CATNAME = Object.fromEntries(CATS);
 const RESTAURANT_REGIONS = {
   "McDonald's India (veg menu)":"India",
@@ -935,12 +944,13 @@ const RESTAURANT_REGIONS = {
   "Street food and local dhabas":"South Asia / varies"
 };
 DATA.forEach(e => { if(e.c === "rest") e.region = RESTAURANT_REGIONS[e.n] || "Varies by location"; });
-DATA.forEach(e => {
+function prepEntry(e){
   e._n = norm(e.n);
   e._kw = (e.kw || []).map(norm);
   e._aka = norm(e.aka);
   e._h = norm(e.n + " " + e.aka + " " + e.s + " " + e.t + " " + (e.region || "") + " " + (e.kw||[]).join(" "));
-});
+}
+DATA.forEach(prepEntry);
 function qnorm(q){
   let s = norm(q).trim();
   s = s.replace(/\b(?:e|ins)[\s\-]?(\d{3,4}[a-z]?)\b/g, "e$1"); // "E 120", "INS-120"
@@ -1033,7 +1043,7 @@ function card(e, ts){
     '<div class="card__main">' +
       '<div class="card__head">' +
         '<div class="card__id"><h3>' + mark(e.n, ts) + '</h3><div class="aka">' + mark(e.aka, ts) + '</div></div>' +
-        '<div class="badges">' + kbadge(e) + veganBadge(e) + '<span class="badge plain">' + esc(CATNAME[e.c] || "") + '</span>' + (e.c === "rest" ? '<span class="badge plain">' + esc(e.region) + '</span>' : '') + '</div>' +
+        '<div class="badges">' + kbadge(e) + veganBadge(e) + '<span class="badge plain' + (e.live ? ' livebadge' : '') + '">' + esc(e.live ? "Added live · Open Food Facts" : (CATNAME[e.c] || "")) + '</span>' + (e.c === "rest" ? '<span class="badge plain">' + esc(e.region) + '</span>' : '') + '</div>' +
       '</div>' +
       fitHTML(fit(e)) +
         evidenceHTML(e) +
@@ -1050,7 +1060,7 @@ function card(e, ts){
 
 /* ====================================================================== scanning engine */
 const SCAN = [];
-DATA.forEach(e => {
+function addScanTerms(e){
   const seen = new Set();
   if(/^'may contain/i.test(e.n)) return;
   e._kw.forEach(t => {
@@ -1058,7 +1068,8 @@ DATA.forEach(e => {
     let re; try{ re = new RegExp("(^|[^a-z0-9])" + rxEsc(t) + "(?:s|es)?([^a-z0-9]|$)", "i"); }catch(_){ return; }
     SCAN.push({re, e, term:t});
   });
-});
+}
+DATA.forEach(addScanTerms);
 SCAN.sort((a,b) => b.term.length - a.term.length);
 const NEUTRALISE = [
   [/(coconut|almond|soy|soya|oat|rice|cashew|hemp|plant|pea|flax|macadamia|hazelnut|walnut|sesame)\s+(milk|cream|yoghurt|drink|cheese)/gi, "$1$2"],
@@ -1379,7 +1390,7 @@ function offToCard(p, base){
     sub: [p.brands, p.quantity, p.code].filter(Boolean).join(" · ") || "brand not listed", img: p.image_front_small_url,
     badges: lab ? '<span class="badge plain">Pack label: ' + lab + '</span>' : "",
     note: notes.join(" "),
-    extra: '<div class="buyrow">' + (p.code ? '<button type="button" data-seen="' + esc(p.code) + '">Where it\'s been seen in stores</button>' : '') + BUY_LINKS([p.brands, name].filter(Boolean).join(" ")) + '</div><div class="seenlist" id="seen-' + esc(p.code || "") + '"></div>',
+    extra: '<div class="buyrow">' + '<button type="button" data-nearprod="' + esc(p.code || "") + '" data-nearname="' + esc([p.brands, name].filter(Boolean).join(" ")) + '">Find near me</button>' + (p.code ? '<button type="button" data-seen="' + esc(p.code) + '">Where it\'s been seen in stores</button>' : '') + BUY_LINKS([p.brands, name].filter(Boolean).join(" ")) + '</div><div class="seenlist" id="seen-' + esc(p.code || "") + '"></div>',
     link: base + "/product/" + encodeURIComponent(p.code || ""), linkText: "Open full record"
   });
 }
@@ -1676,7 +1687,7 @@ async function liveUSDA(q, barcode, sig, seq){
     if(foods.length) html += '<p class="subhead">Branded foods (US)</p><div class="list">' + foods.map(f => productCard({
       title: titleCase(f.description), sub: [titleCase(f.brandName || f.brandOwner), f.gtinUpc ? "UPC " + f.gtinUpc : "", f.marketCountry].filter(Boolean).join(" · "),
       text: titleCase(f.ingredients), link: "https://fdc.nal.usda.gov/food-details/" + f.fdcId + "/nutrients", linkText: "Open USDA record",
-      extra: '<div class="buyrow">' + BUY_LINKS([f.brandName || f.brandOwner, f.description].filter(Boolean).join(" ")) + '</div>'
+      extra: '<div class="buyrow"><button type="button" data-nearprod="" data-nearname="' + esc([f.brandName || f.brandOwner, titleCase(f.description)].filter(Boolean).join(" ")) + '">Find near me</button>' + BUY_LINKS([f.brandName || f.brandOwner, f.description].filter(Boolean).join(" ")) + '</div>'
     })).join("") + '</div>';
     setSec("usda", (foods.length + gens.length) + " foods", html, seq);
   }catch(err){
@@ -1850,9 +1861,9 @@ function buildIndexChips(){
   $("#regionfilter").innerHTML = '<option value="all">All regions</option>' + regions.map(region => '<option value="' + esc(region) + '">' + esc(region) + '</option>').join("");
   $("#regionfilter").value = state.region || "all";
   const kc = {}; DATA.forEach(e => kc[e.k] = (kc[e.k]||0) + 1);
-  $("#kchips").innerHTML = '<button class="chip" data-kf="all" aria-pressed="true">Any verdict</button>' +
-    '<button class="chip" data-kf="alt" aria-pressed="false">Has a swap<small>' + DATA.filter(e => e.alt).length + '</small></button>' +
-    KORDER.map(k => '<button class="chip" data-kf="' + k + '" aria-pressed="false"><span class="dot" style="background:var(--' + k + ')"></span>' + K[k].name + '<small>' + (kc[k]||0) + '</small></button>').join("");
+  $("#kchips").innerHTML = '<button class="chip" data-kf="all" aria-pressed="' + (state.kf === "all") + '">Any verdict</button>' +
+    '<button class="chip" data-kf="alt" aria-pressed="' + (state.kf === "alt") + '">Has a swap<small>' + DATA.filter(e => e.alt).length + '</small></button>' +
+    KORDER.map(k => '<button class="chip" data-kf="' + k + '" aria-pressed="' + (state.kf === k) + '"><span class="dot" style="background:var(--' + k + ')"></span>' + K[k].name + '<small>' + (kc[k]||0) + '</small></button>').join("");
 }
 let iq = "";
 function renderIndex(){
@@ -1876,11 +1887,131 @@ function renderIndex(){
   $("#activetag").textContent = bits.length ? "· " + bits.join(" · ") : "";
   if(!rows.length){ $("#ilist").innerHTML = '<div class="empty"><b>Nothing matches that.</b>Try a broader word, or an E-number such as E120 — or search live from the Search tab.</div>'; return; }
   $("#ilist").innerHTML = rows.slice(0, state.limit).map(e => card(e, ts)).join("") +
-    (rows.length > state.limit ? '<div class="morewrap"><button class="btn ghost" id="more">Show ' + Math.min(40, rows.length - state.limit) + ' more of ' + (rows.length - state.limit) + ' remaining</button></div>' : "");
+    (rows.length > state.limit ? '<div class="morewrap"><button class="btn ghost" id="more">Show ' + Math.min(40, rows.length - state.limit) + ' more of ' + (rows.length - state.limit) + ' remaining</button></div><div id="indexsentinel" aria-hidden="true"></div>' : "");
+  observeIndexSentinel();
 }
 function updateFilterHint(){
   $("#filterhint").hidden = !$$(".scroll-chips").some(row => row.scrollWidth > row.clientWidth);
 }
+
+/* ====================================================================== GROWING INDEX
+   1. Scrolling: the next 40 entries load automatically when the end of the list comes into view.
+   2. Typing: after a short pause, the filter text is looked up in the Open Food Facts ingredient
+      database; matching ingredients that are not in the index yet are classified with this site's
+      rules and added as "Added live" entries. They are kept in this browser for next time. */
+let indexObserver = null;
+function observeIndexSentinel(){
+  if(!("IntersectionObserver" in window)) return;
+  if(!indexObserver) indexObserver = new IntersectionObserver(entries => {
+    if(entries.some(x => x.isIntersecting) && state.view === "index"){
+      indexObserver.disconnect(); state.limit += 40; renderIndex();
+    }
+  }, {rootMargin: "600px 0px"});
+  indexObserver.disconnect();
+  const s = document.getElementById("indexsentinel"); if(s) indexObserver.observe(s);
+}
+const LIVE_KEY = "il-live-v1", LIVE_MAX = 600;
+const GROW = {done: new Set(), seq: 0, added: 0};
+const slugTag = n => "en:" + norm(n).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+function liveVal(prop){ return prop && typeof prop === "object" ? (prop.en || Object.values(prop)[0] || "") : (prop || ""); }
+function liveEntry(name, t){
+  const vg = liveVal(t.vegetarian), vn = liveVal(t.vegan);
+  if(!vg && !vn) return null;                                   // no dietary data: nothing useful to add
+  const lname = norm(name);
+  const e = {n: name.charAt(0).toUpperCase() + name.slice(1), aka: "", c: "live", live: 1, kw: [lname], o: "",
+             wd: liveVal(t.wikidata) || "", region: ""};
+  e.v = vn === "yes" ? "yes" : vn === "no" ? "no" : "maybe";
+  e.g = vg === "yes" ? "yes" : vg === "no" ? "no" : (e.v === "yes" ? "yes" : "maybe");
+  /* this site's stricter rules on top of Open Food Facts */
+  if(/\b(eggs?|egg yolk|egg white|albumen|ovalbumin|lysozyme|yolk)\b/.test(lname) && !/eggplant|egg-?free|eggless/.test(lname)){ e.eo = 1; e.g = "no"; e.v = "no"; }
+  if(/\b(cheese|rennet|parmesan|pecorino|gruyere|grana)\b/.test(lname) && !/vegan|vegetarian|microbial|vegetable|plant/.test(lname)){ e.g = "no"; e.v = "no"; e.ch = 1; }
+  const desc = liveVal(t.description);
+  e.h = desc || "Open Food Facts lists this as an ingredient but gives no description of how it is made.";
+  e.s = e.h;
+  e.t = "Open Food Facts says: vegan " + (vn || "unknown") + ", vegetarian " + (vg || "unknown") + "." +
+        (e.eo ? " Counted as non-vegetarian here because it is an egg product." : "") +
+        (e.ch ? " Counted as non-vegetarian here unless the label says microbial or vegetable rennet." : "");
+  e.k = klass(e);
+  e.kl = e.k === "vegan" ? "none" : (e.k === "lacto" || e.k === "veg") ? "no" : e.k === "egg" ? "no" : e.k === "nonveg" ? "yes" : "depends";
+  e.kn = {none:"No animal involved.", no: e.eo ? "No animal is killed to collect eggs, but egg counts as non-vegetarian under this site's egg rule." : "Taken from living animals — no animal is killed to obtain it.",
+          yes:"Open Food Facts marks it as not vegetarian: it comes from slaughtered or killed animals, fish or insects.", depends:"Depends on the source the maker used."}[e.kl];
+  return e;
+}
+function knownName(n){
+  const x = norm(n);
+  return DATA.some(e => e._n === x || e._kw.includes(x));
+}
+function addLiveEntries(list, persist){
+  let n = 0;
+  list.forEach(e => {
+    if(!e || knownName(e.n)) return;
+    e.i = DATA.length; prepEntry(e); DATA.push(e); addScanTerms(e); n++;
+  });
+  if(n){
+    SCAN.sort((a,b) => b.term.length - a.term.length);
+    if(persist){
+      try{
+        const keep = DATA.filter(e => e.live).slice(-LIVE_MAX).map(e => ({n:e.n, v:e.v, g:e.g, eo:e.eo, ch:e.ch, h:e.h, t:e.t, wd:e.wd, kw:e.kw}));
+        localStorage.setItem(LIVE_KEY, JSON.stringify(keep));
+      }catch(_){}
+    }
+  }
+  return n;
+}
+function restoreLiveEntries(){
+  let saved = [];
+  try{ saved = JSON.parse(localStorage.getItem(LIVE_KEY) || "[]"); }catch(_){ saved = []; }
+  if(!Array.isArray(saved) || !saved.length) return;
+  const list = saved.filter(x => x && x.n).map(x => {
+    const e = {n:x.n, aka:"", c:"live", live:1, kw:x.kw || [norm(x.n)], o:"", wd:x.wd || "", region:"", v:x.v, g:x.g, eo:x.eo, ch:x.ch, h:x.h || "", s:x.h || "", t:x.t || ""};
+    e.k = klass(e);
+    e.kl = e.k === "vegan" ? "none" : (e.k === "nonveg") ? "yes" : e.k === "check" ? "depends" : "no";
+    e.kn = e.kl === "yes" ? "Marked as not vegetarian: comes from slaughtered or killed animals, fish or insects." : e.kl === "none" ? "No animal involved." : e.kl === "depends" ? "Depends on the source the maker used." : "No animal is killed to obtain it.";
+    return e;
+  });
+  addLiveEntries(list, false);
+}
+async function growIndex(q){
+  q = (q || "").trim();
+  const key = norm(q);
+  if(key.length < 3 || !/[a-z]/.test(key) || GROW.done.has(key)) return;
+  GROW.done.add(key);
+  const seq = ++GROW.seq;
+  const line = $("#growline");
+  line.innerHTML = '<span class="spinner"></span> Looking for more “' + esc(q) + '” ingredients in Open Food Facts…';
+  try{
+    const sj = await getJSON("https://world.openfoodfacts.org/api/v3/taxonomy_suggestions?tagtype=ingredients&lc=en&limit=25&string=" + encodeURIComponent(q), null, {timeout:9000});
+    const names = [...new Set((sj.suggestions || []).filter(n => typeof n === "string" && n.length > 2 && n.length < 60))].filter(n => !knownName(n)).slice(0, 25);
+    if(!names.length){ if(seq === GROW.seq) line.innerHTML = 'Nothing new for “' + esc(q) + '” in Open Food Facts — the index already covers it.'; return; }
+    const fields = "&fields=name,vegan,vegetarian,description,wikidata,parents";
+    const tags = names.map(slugTag);
+    const tj = await getJSON("https://world.openfoodfacts.org/api/v2/taxonomy?tagtype=ingredients&lc=en" + fields + "&tags=" + encodeURIComponent(tags.join(",")), null, {timeout:12000});
+    /* specific ingredients often inherit vegan/vegetarian from a parent (e.g. "beef gelatin" → "gelatin") */
+    const parentTags = new Set();
+    tags.forEach(t => { const x = tj[t] || {}; if(!x.vegan && !x.vegetarian && Array.isArray(x.parents)) x.parents.slice(0, 2).forEach(p => parentTags.add(p)); });
+    let pj = {};
+    if(parentTags.size) { try{ pj = await getJSON("https://world.openfoodfacts.org/api/v2/taxonomy?tagtype=ingredients&lc=en" + fields + "&tags=" + encodeURIComponent([...parentTags].slice(0, 30).join(",")), null, {timeout:12000}); }catch(_){} }
+    const entries = names.map((n, i) => {
+      const x = Object.assign({}, tj[tags[i]] || {});
+      if(!x.vegan && !x.vegetarian && Array.isArray(x.parents)){
+        const p = x.parents.map(t => pj[t]).find(y => y && (y.vegan || y.vegetarian));
+        if(p){ x.vegan = p.vegan; x.vegetarian = p.vegetarian; if(!x.description) x.description = p.description; }
+      }
+      return liveEntry(n, x);
+    });
+    const n = addLiveEntries(entries, true);
+    GROW.added += n;
+    if(seq !== GROW.seq) return;
+    if(n){
+      line.innerHTML = '<b>+' + n + ' added</b> to the index from the Open Food Facts ingredient database. They are marked “Added live” and kept in this browser.';
+      buildIndexChips(); if(state.view === "index") renderIndex();
+    } else line.innerHTML = 'Open Food Facts found more “' + esc(q) + '” ingredients, but none with vegan/vegetarian data to add.';
+  }catch(err){
+    GROW.done.delete(key);
+    if(seq === GROW.seq) line.innerHTML = 'Couldn\'t reach Open Food Facts to grow the index (' + esc(err.message || "network") + '). The built-in entries still work offline.';
+  }
+}
+const growIndexDeb = debounce(growIndex, 700);
 
 /* ====================================================================== RESTAURANTS */
 const CUISINES = [
@@ -1950,12 +2081,15 @@ function cuisineFor(tag){
   return CUISINES.find(c => c.k.test(t)) || null;
 }
 
-const EAT = {mode:"eat", product:"", center:null, label:"", places:[], cat:"all", sort:"near", limit:30, map:null, layer:null, markers:{}, mapReady:false, seq:0};
+const EAT = {mode:"eat", product:"", productCode:"", center:null, label:"", places:[], cat:"all", sort:"near", limit:30, map:null, layer:null, markers:{}, mapReady:false, seq:0};
 const PCAT = {
   vegan_only:{label:"100% vegan", col:"#2f7d32", pri:0},
   veg_only:{label:"Pure vegetarian", col:"#0f766e", pri:1},
   vegan_opt:{label:"Vegan options", col:"#7a9a2a", pri:2},
   veg_opt:{label:"Vegetarian options", col:"#b4851b", pri:3},
+  veg_name:{label:"Likely vegetarian (by name)", col:"#5b8a3a", pri:4},
+  veg_friendly:{label:"Veg-friendly cuisine — ask", col:"#8a6d3b", pri:5},
+  langar:{label:"Free vegetarian meals (gurdwara / temple)", col:"#c2410c", pri:2},
   s_vegan:{label:"Vegan / veg store", col:"#2f7d32", pri:0, store:1},
   s_health:{label:"Health & organic", col:"#0f766e", pri:1, store:1},
   s_fresh:{label:"Fresh produce & markets", col:"#7a9a2a", pri:2, store:1},
@@ -2014,16 +2148,20 @@ function haversine(a, b){
 }
 const fmtDist = m => m < 950 ? Math.round(m / 10) * 10 + " m" : (m / 1000).toFixed(1) + " km";
 const OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"];
-async function overpass(query){
-  for(const ep of OVERPASS){
-    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 32000);
-    try{
-      const r = await fetch(ep, {method:"POST", body:"data=" + encodeURIComponent(query), headers:{"Content-Type":"application/x-www-form-urlencoded"}, signal:ctrl.signal});
+/* Race every Overpass server at once (they are often overloaded); first good answer wins. */
+async function overpass(query, timeoutMs){
+  const ctrls = OVERPASS.map(() => new AbortController());
+  const timer = setTimeout(() => ctrls.forEach(c => c.abort()), timeoutMs || 22000);
+  try{
+    return await Promise.any(OVERPASS.map(async (ep, i) => {
+      const r = await fetch(ep, {method:"POST", body:"data=" + encodeURIComponent(query), headers:{"Content-Type":"application/x-www-form-urlencoded"}, signal:ctrls[i].signal});
       if(!r.ok) throw new Error("HTTP " + r.status);
-      const j = await r.json(); clearTimeout(t); return j;
-    }catch{ clearTimeout(t); }
-  }
-  throw new Error("All restaurant search servers timed out or were unreachable. Please try again in a moment.");
+      const j = await r.json();
+      ctrls.forEach((c, k) => { if(k !== i) c.abort(); });
+      return j;
+    }));
+  }catch(_){ throw new Error("The detailed OpenStreetMap servers (Overpass) are busy or unreachable."); }
+  finally{ clearTimeout(timer); }
 }
 async function geocode(q){
   try{
@@ -2035,46 +2173,157 @@ async function geocode(q){
 }
 function setEatStatus(html){ $("#eatstatus").innerHTML = html || ""; }
 
+/* ---------- fast fallbacks that do not depend on Overpass ---------- */
+const VEG_NAME_RX = /\b(vegan|vegetarian|veggie|veg|pure veg|plant[- ]based|udupi|bhavan|bhawan|sattvic|saatvik|satvik|jain|bhojanalaya|thali|annapoorna|annapurna|shakahari|govinda'?s|loving hut|falafel)\b/i;
+const VEG_FRIENDLY_CUISINE = /(^|;)\s*(indian|south_indian|north_indian|gujarati|punjabi|nepalese|sri_lankan|ethiopian|eritrean|lebanese|middle_eastern|falafel|mediterranean|israeli|vegetarian|vegan)\s*(;|$)/i;
+function classifyFallbackPlace(t){
+  if((t.amenity === "place_of_worship" || t.building === "gurdwara") && ((t.religion || "") === "sikh" || /gurdwara|gurudwara|gurdwara sahib|iskcon|hare krishna|govinda/i.test(t.name || ""))) return "langar";
+  const c = classifyPlace(t); if(c) return c;
+  if(VEG_NAME_RX.test(t.name || "")) return "veg_name";
+  if(VEG_FRIENDLY_CUISINE.test(t.cuisine || "")) return "veg_friendly";
+  return null;
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function boxFor(center, R){
+  const dLat = R / 111320, dLon = R / (111320 * Math.max(0.2, Math.cos(center.lat * Math.PI / 180)));
+  return {minLat: center.lat - dLat, maxLat: center.lat + dLat, minLon: center.lon - dLon, maxLon: center.lon + dLon};
+}
+function fromNominatim(x){
+  const t = Object.assign({}, x.extratags || {}, {name: x.name || (x.namedetails && x.namedetails.name) || ""});
+  t[x.category || "amenity"] = x.type;
+  const a = x.address || {};
+  if(a.road && !t["addr:street"]) t["addr:street"] = a.road;
+  if(a.house_number && !t["addr:housenumber"]) t["addr:housenumber"] = a.house_number;
+  if(!t["addr:city"]) t["addr:city"] = a.city || a.town || a.village || a.suburb || "";
+  return {type: x.osm_type, id: x.osm_id, lat: +x.lat, lon: +x.lon, tags: t, src: "Nominatim"};
+}
+function fromPhoton(f){
+  const p = f.properties || {}, c = (f.geometry || {}).coordinates || [];
+  const type = {N:"node", W:"way", R:"relation"}[p.osm_type] || "node";
+  const t = {name: p.name || ""}; t[p.osm_key || "amenity"] = p.osm_value;
+  if(p.street) t["addr:street"] = p.street; if(p.housenumber) t["addr:housenumber"] = p.housenumber; if(p.city) t["addr:city"] = p.city;
+  return {type, id: p.osm_id, lat: c[1], lon: c[0], tags: t, src: "Photon"};
+}
+/* Nominatim's usage policy asks for at most one request per second, so these run one after another. */
+async function nominatimPOIs(center, R, kinds, seq, onBatch){
+  const b = boxFor(center, R), vb = [b.minLon, b.maxLat, b.maxLon, b.minLat].join(",");
+  for(const kind of kinds){
+    if(seq !== EAT.seq) return;
+    try{
+      const j = await getJSON("https://nominatim.openstreetmap.org/search?format=jsonv2&bounded=1&extratags=1&addressdetails=1&limit=40&viewbox=" + vb + "&amenity=" + encodeURIComponent(kind), null, {timeout:10000});
+      if(seq === EAT.seq && Array.isArray(j)) onBatch(j.map(fromNominatim));
+    }catch(_){}
+    await sleep(1100);
+  }
+}
+async function photonPOIs(center, R, words, osmTag, seq, onBatch){
+  const b = boxFor(center, R), bb = [b.minLon, b.minLat, b.maxLon, b.maxLat].join(",");
+  await Promise.all(words.map(async w => {
+    try{
+      const j = await getJSON("https://photon.komoot.io/api/?limit=40&bbox=" + bb + "&q=" + encodeURIComponent(w) + (osmTag ? "&osm_tag=" + osmTag : ""), null, {timeout:10000});
+      if(seq === EAT.seq) onBatch((j.features || []).map(fromPhoton));
+    }catch(_){}
+  }));
+}
+
 async function eatSearch(center, label, alts){
   const seq = ++EAT.seq;
-  EAT.center = center; EAT.label = label;
+  EAT.center = center; EAT.label = label; EAT.alts = alts;
+  EAT.places = []; EAT.cat = "all"; EAT.limit = 30;
   const R = +$("#radius").value;
-  setEatStatus('<div class="msg"><span class="spinner"></span> Searching ' + (EAT.mode === "shop" ? "grocery and food stores" : "vegetarian and vegan places") + ' within ' + (R/1000) + ' km of <b>' + esc(label) + '</b>…</div>');
+  const shop = EAT.mode === "shop";
+  const short = esc(label.split(",").slice(0,3).join(","));
+  const src = {overpass:"loading", fast:"loading"};
+  const byId = new Map();
+  let renderTimer = null;
+  const status = () => {
+    if(seq !== EAT.seq) return;
+    const n = EAT.places.length;
+    let alt = "";
+    if(alts && alts.length > 1) alt = '<div class="chips" style="margin-top:10px"><span class="note-sm" style="align-self:center">Not the right place?</span>' + alts.slice(1).map((a,i) => '<button class="trybtn" data-alt="' + (i+1) + '">' + esc(a.label.split(",").slice(0,3).join(",")) + '</button>').join("") + '</div>';
+    const busy = src.overpass === "loading" || src.fast === "loading";
+    const srcLine = '<div class="note-sm" style="margin-top:6px">Sources: OpenStreetMap via Nominatim &amp; Photon ' + (src.fast === "loading" ? "(searching…)" : "✓") +
+      ' · Overpass detailed diet tags ' + ({loading:"(still searching…)", ok:"✓", down:"(busy right now — results above come from the other sources)"})[src.overpass] + '</div>';
+    if(n) setEatStatus('<div class="msg">' + (busy ? '<span class="spinner"></span> ' : '') + '<b>' + n + ' ' + (shop ? "food store" : "place") + (n === 1 ? "" : "s") + '</b> ' + (shop ? "" : "with vegetarian or vegan food ") + 'near <b>' + short + '</b>' + (busy ? " so far" : "") + '.' + srcLine + alt + '</div>');
+    else if(busy) setEatStatus('<div class="msg"><span class="spinner"></span> Searching ' + (shop ? "grocery and food stores" : "vegetarian and vegan places") + ' within ' + (R/1000) + ' km of <b>' + short + '</b>…' + srcLine + '</div>');
+    else setEatStatus('<div class="msg">No ' + (shop ? "food stores" : "vegetarian or vegan places") + ' found within ' + (R/1000) + ' km of <b>' + short + '</b>. OpenStreetMap coverage varies by city — try a bigger radius, or the links below to search other directories.' + srcLine + alt + '</div>');
+  };
+  const add = (els) => {
+    if(seq !== EAT.seq) return;
+    let changed = false;
+    els.forEach(el => {
+      const t = el.tags || {}; if(!t.name || el.lat == null || isNaN(el.lat)) return;
+      const cat = shop ? classifyStore(t) : classifyFallbackPlace(t); if(!cat) return;
+      if(shop && cat === "s_super" && (t.shop || "") === "convenience" && !/(yes|only)/.test(t["diet:vegan"] || t["diet:vegetarian"] || "")) return;
+      const dist = haversine(center, {lat: el.lat, lon: el.lon}); if(dist > R * 1.5) return;
+      const id = el.type + el.id;
+      const prev = byId.get(id);
+      if(prev){ if(el.src === "Overpass"){ prev.t = Object.assign({}, prev.t, t); prev.cat = cat; prev.open = openNow(prev.t.opening_hours); changed = true; } return; }
+      const p = {id, osmType: String(el.type).toUpperCase(), osmId: el.id, t, cat, lat: el.lat, lon: el.lon, dist, open: openNow(t.opening_hours), src: el.src};
+      byId.set(id, p); EAT.places.push(p); changed = true;
+    });
+    if(changed){ $("#eatresults").hidden = false; clearTimeout(renderTimer); renderTimer = setTimeout(() => { if(seq === EAT.seq){ renderEat(); status(); } }, 250); }
+  };
+  status();
+
+  /* 1. detailed Overpass query (best data, but often overloaded) — raced across servers */
   const A = "[\"amenity\"~\"^(restaurant|cafe|fast_food|food_court|ice_cream)$\"]";
   const around = "(around:" + R + "," + center.lat + "," + center.lon + ")";
   const S = "[\"shop\"~\"^(supermarket|greengrocer|health_food|organic|farm|spices|deli|wholesale|grocery|convenience|herbalist)$\"]";
-  const q = EAT.mode === "shop"
-    ? "[out:json][timeout:28];(" + "nwr" + around + S + ";" + "nwr" + around + "[\"amenity\"=\"marketplace\"];" + ");out center tags 300;"
-    : "[out:json][timeout:28];(" +
+  const q = shop
+    ? "[out:json][timeout:20];(" + "nwr" + around + S + ";" + "nwr" + around + "[\"amenity\"=\"marketplace\"];" + ");out center tags 300;"
+    : "[out:json][timeout:20];(" +
     "nwr" + around + A + "[\"diet:vegan\"~\"^(yes|only)$\"];" +
     "nwr" + around + A + "[\"diet:vegetarian\"~\"^(yes|only)$\"];" +
-    "nwr" + around + A + "[\"cuisine\"~\"vegan|vegetarian\"];" +
-    ");out center tags 250;";
+    "nwr" + around + A + "[\"cuisine\"~\"vegan|vegetarian|indian|ethiopian|lebanese|falafel|middle_eastern\"];" +
+    "nwr" + around + "[\"amenity\"=\"place_of_worship\"][\"religion\"=\"sikh\"];" +
+    ");out center tags 300;";
+  const op = overpass(q).then(j => {
+    add((j.elements || []).map(el => ({type: el.type, id: el.id, lat: el.lat != null ? el.lat : el.center && el.center.lat, lon: el.lon != null ? el.lon : el.center && el.center.lon, tags: el.tags || {}, src: "Overpass"})));
+    src.overpass = "ok";
+  }).catch(() => { src.overpass = "down"; });
+
+  /* 2. fast sources that keep working when Overpass is down */
+  const fast = Promise.all(shop ? [
+    nominatimPOIs(center, R, ["supermarket", "greengrocer", "health food", "organic", "marketplace", "grocery"], seq, add),
+    photonPOIs(center, R, ["indian", "organic", "health", "bazaar", "market", "asian"], "shop", seq, add)
+  ] : [
+    nominatimPOIs(center, R, ["restaurant", "cafe", "fast food"], seq, add),
+    photonPOIs(center, R, ["vegan", "vegetarian", "veg", "veggie", "plant based", "falafel", "india", "udupi", "bhavan", "gurdwara", "gurudwara", "iskcon", "govinda"], "amenity", seq, add)
+  ]).then(() => { src.fast = "done"; });
+
+  if(shop && EAT.productCode) nearbySightings(EAT.productCode, seq);   /* independent of the store searches */
+  await Promise.allSettled([op, fast]);
+  if(seq !== EAT.seq) return;
+  renderEat(); status();
+}
+
+/* ---------- products near you: Open Prices sightings sorted by distance ---------- */
+async function nearbySightings(code, seq){
+  const box = $("#nearseen"); if(!box || !EAT.center) return;
+  box.hidden = false;
+  box.innerHTML = '<div class="note-sm"><span class="spinner"></span> Checking where shoppers recently saw this product…</div>';
   try{
-    const j = await overpass(q);
+    const j = await getJSON("https://prices.openfoodfacts.org/api/v1/prices?product_code=" + encodeURIComponent(code) + "&order_by=-date&size=100", null, {timeout:12000});
     if(seq !== EAT.seq) return;
-    const places = [];
-    (j.elements || []).forEach(el => {
-      const t = el.tags || {}; if(!t.name) return;
-      const cat = EAT.mode === "shop" ? classifyStore(t) : classifyPlace(t); if(!cat) return;
-      if(EAT.mode === "shop" && cat === "s_super" && (t.shop || "") === "convenience" && !/(yes|only)/.test(t["diet:vegan"] || t["diet:vegetarian"] || "")) return;
-      const lat = el.lat != null ? el.lat : el.center && el.center.lat, lon = el.lon != null ? el.lon : el.center && el.center.lon;
-      if(lat == null) return;
-      places.push({id: el.type + el.id, osmType: el.type.toUpperCase(), osmId: el.id, t, cat, lat, lon, dist: haversine(center, {lat, lon}), open: openNow(t.opening_hours)});
-    });
-    EAT.places = places; EAT.cat = "all"; EAT.limit = 30;
-    $("#eatresults").hidden = false;
-    let alt = "";
-    if(alts && alts.length > 1) alt = '<div class="chips" style="margin-top:10px"><span class="note-sm" style="align-self:center">Not the right place?</span>' + alts.slice(1).map((a,i) => '<button class="trybtn" data-alt="' + (i+1) + '">' + esc(a.label.split(",").slice(0,3).join(",")) + '</button>').join("") + '</div>';
-    EAT.alts = alts;
-    setEatStatus(places.length
-      ? '<div class="msg"><b>' + places.length + ' ' + (EAT.mode === "shop" ? "food store" : "place") + (places.length === 1 ? "" : "s") + '</b> ' + (EAT.mode === "shop" ? "" : "with vegetarian or vegan options ") + 'near <b>' + esc(label.split(",").slice(0,3).join(",")) + '</b>.' + alt + '</div>'
-      : '<div class="msg">No places tagged as vegetarian or vegan within ' + (R/1000) + ' km of <b>' + esc(label.split(",").slice(0,3).join(",")) + '</b>. OpenStreetMap coverage varies by city — try a bigger radius, or the links below to search other directories.' + alt + '</div>');
-    renderEat();
-  }catch(err){
-    if(seq !== EAT.seq) return;
-    setEatStatus('<div class="msg err"><b>The restaurant database didn\'t respond.</b> ' + esc(err.message) + ' <button class="btn sm ghost" id="eatretry">Try again</button></div>');
-  }
+    const items = (j.items || []).filter(i => i.location && i.location.osm_lat != null)
+      .map(i => Object.assign({d: haversine(EAT.center, {lat: +i.location.osm_lat, lon: +i.location.osm_lon})}, i))
+      .sort((a, b) => a.d - b.d);
+    const near = items.filter(i => i.d < 50000).slice(0, 8);
+    box.innerHTML = '<div class="panel"><h3>Recently seen near you — “' + esc(EAT.product || code) + '”</h3>' +
+      (near.length ? '<div class="seenlist">' + near.map(i => { const L0 = i.location;
+        return '<div class="seen"><div><b>' + esc(L0.osm_name || L0.osm_brand || "A shop") + '</b> <span>' + esc([L0.osm_address_city, L0.osm_address_country].filter(Boolean).join(", ")) + ' · ' + fmtDist(i.d) + '</span></div><div>' + (i.price != null ? esc(i.price + " " + (i.currency || "")) + ' · ' : '') + '<span>seen ' + esc(i.date || "") + '</span> · <a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + L0.osm_lat + ',' + L0.osm_lon + '">directions ↗</a></div></div>'; }).join("") + '</div>'
+        : '<p>No shopper has reported this exact product within 50 km yet' + (items.length ? ' (nearest report: ' + esc(items[0].location.osm_name || "a shop") + ', ' + fmtDist(items[0].d) + ' away)' : '') + '. The stores listed below may still stock it — use “Check stock”, or call ahead.</p>') +
+      '<p class="note-sm" style="margin:8px 0 0">From Open Prices (photographed price tags): proof it was on the shelf that day, not live stock.</p></div>';
+  }catch(err){ if(seq === EAT.seq) box.innerHTML = '<div class="note-sm">Open Prices didn\'t answer (' + esc(err.message) + ').</div>'; }
+}
+function findNearMe(code, name){
+  EAT.mode = "shop"; EAT.cat = "all"; EAT.product = name || ""; EAT.productCode = code || "";
+  $$("[data-mode]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === "shop")));
+  $("#productrow").hidden = false; $("#wantprod").value = EAT.product;
+  const ns = $("#nearseen"); if(ns){ ns.hidden = true; ns.innerHTML = ""; }
+  showView("eat");
+  if(EAT.center) eatSearch(EAT.center, EAT.label, EAT.alts); else eatNearMe();
 }
 async function eatFromText(){
   const q = $("#place").value.trim();
@@ -2147,6 +2396,9 @@ function placeHTML(p){
   const other = [];
   if(t["diet:vegan"] === "limited") other.push("limited vegan options");
   if(t["diet:vegetarian"] === "limited") other.push("limited vegetarian options");
+  if(p.cat === "langar") other.push((t.religion === "sikh" || /gurd?u?wara/i.test(t.name || "")) ? "Langar: free vegetarian community meal (no meat, fish or egg) open to everyone — check serving times, cover your head" : "Temple kitchen: vegetarian meals, often free or by donation — check serving times");
+  if(p.cat === "veg_name") other.push("Name suggests vegetarian — not confirmed by tags");
+  if(p.cat === "veg_friendly") other.push("Cuisine usually has many vegetarian dishes — ask about ghee, egg and stock");
   return '<article class="place" id="pl-' + p.id + '" data-pid="' + p.id + '">' +
     '<div style="display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap"><h4>' + esc(t.name) + '</h4><div class="badges">' + (p.open === true ? '<span class="openbadge open">Open now</span>' : p.open === false ? '<span class="openbadge closed">Closed now</span>' : '') + '<span class="badge" style="color:' + c.col + ';background:' + c.col + '1a;border-color:' + c.col + '40"><i></i>' + c.label + '</span></div></div>' +
     '<div class="meta"><span>' + fmtDist(p.dist) + ' away</span>' + (cuis.length ? '<span>' + esc(cuis.join(", ")) + '</span>' : '') + (t.amenity ? '<span>' + esc(t.amenity.replace(/_/g," ")) + '</span>' : '') + (addr ? '<span>' + esc(addr) + '</span>' : '') + '</div>' +
@@ -2294,6 +2546,7 @@ $("#kchips").addEventListener("click", e => { const b = e.target.closest(".chip"
 $("#regionfilter").addEventListener("change", e => { state.region = e.target.value; state.limit = 40; renderIndex(); });
 window.addEventListener("resize", updateFilterHint);
 $("#iq").addEventListener("input", debounce(e => { iq = e.target.value.trim(); state.limit = 40; renderIndex(); }, 150));
+$("#iq").addEventListener("input", e => growIndexDeb(e.target.value));
 $("#ilist").addEventListener("click", e => { if(e.target.id === "more"){ state.limit += 40; renderIndex(); } });
 
 /* restaurants */
@@ -2446,11 +2699,13 @@ $("#themebtn").addEventListener("click", () => {
 document.addEventListener("click", e => {
   const g = e.target.closest("[data-goto]"); if(g){ showView(g.dataset.goto); return; }
   const s = e.target.closest("[data-seen]"); if(s){ const box = document.getElementById("seen-" + s.dataset.seen); if(box) loadSeen(s.dataset.seen, box); return; }
+  const np = e.target.closest("[data-nearprod]"); if(np){ findNearMe(np.dataset.nearprod, np.dataset.nearname); return; }
   const ss = e.target.closest("[data-shopseen]"); if(ss){ const [t, i] = ss.dataset.shopseen.split(":"); const box = document.getElementById("ss-" + t + i); if(box) shopSeen(ss.dataset.shopseen, box); return; }
   const cc = e.target.closest("[data-checkcode]"); if(cc){ showView("search"); $("#q").value = cc.dataset.checkcode; runSearch(cc.dataset.checkcode, {immediate:true}); return; }
   const oc = e.target.closest("[data-ocr]"); if(oc){ $("#ocrfile").click(); return; }
   const md = e.target.closest("[data-mode]"); if(md){
     EAT.mode = md.dataset.mode; EAT.cat = "all";
+    if(EAT.mode !== "shop"){ EAT.productCode = ""; const ns = $("#nearseen"); if(ns){ ns.hidden = true; ns.innerHTML = ""; } }
     $$("[data-mode]").forEach(b => b.setAttribute("aria-pressed", String(b === md)));
     $("#productrow").hidden = EAT.mode !== "shop";
     if(EAT.center) eatSearch(EAT.center, EAT.label, EAT.alts);
@@ -2463,6 +2718,7 @@ if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) window.a
 
 /* ====================================================================== init */
 refreshKeyUI(); checkServerSpoon();
+restoreLiveEntries();
 buildLegend(); buildTiles(); buildIndexChips(); buildCuisines();
 updateSearchPlaceholder(); updateFilterHint();
 $("#total").textContent = DATA.length;
