@@ -248,6 +248,49 @@ test("Restaurant fallback rejects bank names but keeps Indian restaurants", asyn
   await expect(places).not.toContainText("FirstRand Bank, India branch");
 });
 
+test("Restaurant search includes food-tagged bakeries but rejects bakery-name matches", async ({ page }) => {
+  let overpassQuery = "";
+  await page.route("**/*", route => {
+    const url = new URL(route.request().url());
+    if (url.origin === appOrigin) return route.continue();
+    const json = body => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+    if (url.hostname === "overpass-api.de") {
+      overpassQuery = new URLSearchParams(route.request().postData() || "").get("data") || "";
+      return json({ elements: [
+        { type: "node", id: 51, lat: 42.333, lon: -83.046, tags: { name: "Green Oven", shop: "bakery", "diet:vegetarian": "yes" } }
+      ] });
+    }
+    if (url.hostname === "nominatim.openstreetmap.org" && url.searchParams.get("q")) {
+      return json([{ lat: "42.3314", lon: "-83.0458", display_name: "Detroit, Michigan" }]);
+    }
+    if (url.hostname === "nominatim.openstreetmap.org" && url.searchParams.get("shop") === "bakery") {
+      return json([
+        { osm_type: "node", osm_id: 51, lat: "42.333", lon: "-83.046", name: "Green Oven", category: "shop", type: "bakery", extratags: { "diet:vegetarian": "yes" } },
+        { osm_type: "node", osm_id: 52, lat: "42.334", lon: "-83.046", name: "Vegan Bakehouse", category: "shop", type: "bakery" },
+        { osm_type: "node", osm_id: 53, lat: "42.335", lon: "-83.046", name: "Vegan Bakery Bank", category: "amenity", type: "bank" }
+      ]);
+    }
+    if (url.hostname === "photon.komoot.io" && url.searchParams.get("osm_tag") === "shop" && url.searchParams.get("q") === "vegan") {
+      return json({ features: [{
+        geometry: { coordinates: [-83.046, 42.334] },
+        properties: { osm_type: "N", osm_id: 52, name: "Vegan Bakehouse", osm_key: "shop", osm_value: "bakery" }
+      }] });
+    }
+    if (url.hostname.includes("overpass")) return route.abort();
+    return json(url.hostname === "photon.komoot.io" ? { features: [] } : []);
+  });
+  await page.goto("/#eat");
+  await page.locator("#place").fill("Detroit");
+  await page.locator("#eatgo").click();
+
+  const places = page.locator("#eatlist");
+  await expect(places).toContainText("Green Oven", { timeout: 15000 });
+  await expect(places).toContainText("Vegan Bakehouse");
+  await expect(page.locator("#eatstatus")).toContainText("Photon ✓", { timeout: 15000 });
+  await expect(places).not.toContainText("Vegan Bakery Bank");
+  expect(overpassQuery).toContain('["shop"="bakery"]["diet:vegetarian"~"^(yes|only)$"]');
+});
+
 test("Restaurant search includes tagged airport, stadium, and station eateries within radius", async ({ page }) => {
   await page.route("**/*", route => {
     const url = new URL(route.request().url());
